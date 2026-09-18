@@ -14,16 +14,255 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      app_settings: {
+        Row: {
+          client_intro_text: string
+          company_name: string
+          id: string
+          link_expiry_days: number
+          logo_data: string | null
+          privacy_text: string
+          updated_at: string
+          whatsapp_message: string
+        }
+        Insert: {
+          client_intro_text?: string
+          company_name?: string
+          id?: string
+          link_expiry_days?: number
+          logo_data?: string | null
+          privacy_text?: string
+          updated_at?: string
+          whatsapp_message?: string
+        }
+        Update: {
+          client_intro_text?: string
+          company_name?: string
+          id?: string
+          link_expiry_days?: number
+          logo_data?: string | null
+          privacy_text?: string
+          updated_at?: string
+          whatsapp_message?: string
+        }
+        Relationships: []
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          details: Json | null
+          entity: string | null
+          entity_id: string | null
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          details?: Json | null
+          entity?: string | null
+          entity_id?: string | null
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          details?: Json | null
+          entity?: string | null
+          entity_id?: string | null
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      clients: {
+        Row: {
+          cpf: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string
+          signed_at: string | null
+          status: Database["public"]["Enums"]["sign_status"]
+          updated_at: string
+        }
+        Insert: {
+          cpf: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone: string
+          signed_at?: string | null
+          status?: Database["public"]["Enums"]["sign_status"]
+          updated_at?: string
+        }
+        Update: {
+          cpf?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string
+          signed_at?: string | null
+          status?: Database["public"]["Enums"]["sign_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id: string
+          name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sign_attempts: {
+        Row: {
+          created_at: string
+          id: string
+          ip_address: string
+          success: boolean
+          token_hash: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_address: string
+          success?: boolean
+          token_hash?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_address?: string
+          success?: boolean
+          token_hash?: string | null
+        }
+        Relationships: []
+      }
+      signatures: {
+        Row: {
+          client_id: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          ip_address: string | null
+          photo_path: string | null
+          signed_at: string | null
+          signer_cpf: string | null
+          signer_name: string | null
+          status: Database["public"]["Enums"]["sign_status"]
+          token: string
+          token_hash: string
+          user_agent: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          ip_address?: string | null
+          photo_path?: string | null
+          signed_at?: string | null
+          signer_cpf?: string | null
+          signer_name?: string | null
+          status?: Database["public"]["Enums"]["sign_status"]
+          token: string
+          token_hash: string
+          user_agent?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          ip_address?: string | null
+          photo_path?: string | null
+          signed_at?: string | null
+          signer_cpf?: string | null
+          signer_name?: string | null
+          status?: Database["public"]["Enums"]["sign_status"]
+          token?: string
+          token_hash?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signatures_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin"
+      sign_status: "PENDENTE" | "ASSINADO" | "CANCELADO"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +389,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin"],
+      sign_status: ["PENDENTE", "ASSINADO", "CANCELADO"],
+    },
   },
 } as const

@@ -4,8 +4,10 @@ import { ShieldCheck, Loader2 } from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { getRegistrationAvailability } from "@/lib/settings.functions";
 
 export const Route = createFileRoute("/auth")({
+  loader: () => getRegistrationAvailability(),
   head: () => ({
     meta: [
       { title: "Entrar — Verifica" },
@@ -25,6 +27,7 @@ const schema = z.object({
 });
 
 function AuthPage() {
+  const { registrationOpen } = Route.useLoaderData();
   const navigate = useNavigate();
   const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
   const [email, setEmail] = useState("");
@@ -164,9 +167,11 @@ function AuthPage() {
               <button className="text-primary hover:underline" onClick={() => setMode("forgot")}>
                 Esqueci minha senha
               </button>
-              <button className="text-muted-foreground hover:underline" onClick={() => setMode("signup")}>
-                Criar conta
-              </button>
+              {registrationOpen && (
+                <button className="text-muted-foreground hover:underline" onClick={() => setMode("signup")}>
+                  Criar conta
+                </button>
+              )}
             </>
           ) : (
             <button className="text-primary hover:underline" onClick={() => setMode("login")}>

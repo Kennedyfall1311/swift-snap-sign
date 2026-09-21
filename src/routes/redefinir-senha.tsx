@@ -31,7 +31,7 @@ function ResetPage() {
     return () => data.subscription.unsubscribe();
   }, []);
 
-  async function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent): Promise<unknown> {
     e.preventDefault();
     if (password.length < 8) return toast.error("A senha deve ter pelo menos 8 caracteres");
     setLoading(true);

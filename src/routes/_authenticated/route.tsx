@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_authenticated")({
 
 function AuthenticatedLayout() {
   const { user, isAdmin } = Route.useRouteContext();
-  const name = (user.user_metadata?.name as string | undefined) ?? undefined;
+  const name = (user.user_metadata?.["name"] as string | undefined) ?? undefined;
 
   if (!isAdmin) {
     return (

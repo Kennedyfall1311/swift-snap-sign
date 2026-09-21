@@ -39,7 +39,8 @@ function AuthPage() {
     });
   }, [navigate]);
 
-  async function submit(e: React.FormEvent) {
+  // eslint-disable-next-line consistent-return
+  async function submit(e: React.FormEvent): Promise<unknown> {
     e.preventDefault();
     setInfo(null);
     if (mode === "forgot") {

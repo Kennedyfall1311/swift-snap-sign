@@ -4,7 +4,12 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 async function assertAdmin(ctx: { supabase: any; userId: string }) {
-  const { data } = await ctx.supabase.rpc("has_role", { _user_id: ctx.userId, _role: "admin" });
+  const { data } = await ctx.supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", ctx.userId)
+    .eq("role", "admin")
+    .maybeSingle();
   if (!data) throw new Error("Acesso negado");
 }
 

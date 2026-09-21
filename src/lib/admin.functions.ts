@@ -21,6 +21,12 @@ function reqMeta() {
   };
 }
 
+function hasExpectedFileSignature(bytes: Buffer, type: "application/pdf" | "image/jpeg" | "image/png") {
+  if (type === "application/pdf") return bytes.subarray(0, 5).toString("ascii") === "%PDF-";
+  if (type === "image/jpeg") return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  return bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+}
+
 /** Creates (or returns the active) signature link for a client. Returns the plain token. */
 export const generateSignLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -74,6 +80,7 @@ export const generateSignLink = createServerFn({ method: "POST" })
         if (!match?.[2]) throw new Error(`Arquivo inválido: ${doc.name}`);
         const bytes = Buffer.from(match[2], "base64");
         if (!bytes.length || bytes.length > 10 * 1024 * 1024) throw new Error(`Arquivo fora do limite: ${doc.name}`);
+        if (!hasExpectedFileSignature(bytes, doc.type)) throw new Error(`Conteúdo inválido: ${doc.name}`);
         const safeName = doc.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-100);
         const path = `${created.id}/${index}-${safeName}`;
         const { error: uploadError } = await supabaseAdmin.storage.from("documents").upload(path, bytes, { contentType: doc.type, upsert: false });

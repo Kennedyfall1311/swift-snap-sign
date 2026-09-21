@@ -11,8 +11,6 @@ export type ClientWithSignatures = Client & { signatures: SignatureWithDocuments
 
 export function latestSignature(c: ClientWithSignatures): SignatureWithDocuments | null {
   if (!c.signatures?.length) return null;
-  const signed = c.signatures.find((s) => s.status === "ASSINADO");
-  if (signed) return signed;
   return [...c.signatures].sort((a, b) => b.created_at.localeCompare(a.created_at))[0] ?? null;
 }
 

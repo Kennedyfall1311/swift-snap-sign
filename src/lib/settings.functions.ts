@@ -14,3 +14,14 @@ export const getPublicSettings = createServerFn({ method: "GET" }).handler(async
     privacyText: data?.privacy_text ?? "",
   };
 });
+
+/** Controls whether the one-time administrator registration is still available. */
+export const getRegistrationAvailability = createServerFn({ method: "GET" }).handler(async () => {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { count, error } = await supabaseAdmin
+    .from("user_roles")
+    .select("id", { count: "exact", head: true })
+    .eq("role", "admin");
+  if (error) return { registrationOpen: false };
+  return { registrationOpen: (count ?? 0) === 0 };
+});

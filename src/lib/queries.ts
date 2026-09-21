@@ -5,9 +5,11 @@ import type { Tables } from "@/integrations/supabase/types";
 export type Client = Tables<"clients">;
 export type Signature = Tables<"signatures">;
 export type Settings = Tables<"app_settings">;
-export type ClientWithSignatures = Client & { signatures: Signature[] };
+export type SignatureDocument = Tables<"signature_documents">;
+export type SignatureWithDocuments = Signature & { signature_documents: SignatureDocument[] };
+export type ClientWithSignatures = Client & { signatures: SignatureWithDocuments[] };
 
-export function latestSignature(c: ClientWithSignatures): Signature | null {
+export function latestSignature(c: ClientWithSignatures): SignatureWithDocuments | null {
   if (!c.signatures?.length) return null;
   const signed = c.signatures.find((s) => s.status === "ASSINADO");
   if (signed) return signed;
@@ -19,7 +21,7 @@ export const clientsQuery = queryOptions({
   queryFn: async (): Promise<ClientWithSignatures[]> => {
     const { data, error } = await supabase
       .from("clients")
-      .select("*, signatures(*)")
+      .select("*, signatures(*, signature_documents(*))")
       .order("created_at", { ascending: false });
     if (error) throw error;
     return (data ?? []) as ClientWithSignatures[];

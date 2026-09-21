@@ -85,39 +85,78 @@ export type Database = {
       }
       clients: {
         Row: {
+          apelido: string | null
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          codigo: string
+          complemento: string | null
           cpf: string
           created_at: string
           created_by: string | null
+          endereco: string | null
           id: string
           name: string
           notes: string | null
+          orgao_expedidor: string | null
+          pais: string
           phone: string
+          photo_path: string | null
+          rg: string | null
           signed_at: string | null
           status: Database["public"]["Enums"]["sign_status"]
+          tipo_pessoa: string
+          uf: string | null
           updated_at: string
         }
         Insert: {
+          apelido?: string | null
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          codigo: string
+          complemento?: string | null
           cpf: string
           created_at?: string
           created_by?: string | null
+          endereco?: string | null
           id?: string
           name: string
           notes?: string | null
+          orgao_expedidor?: string | null
+          pais?: string
           phone: string
+          photo_path?: string | null
+          rg?: string | null
           signed_at?: string | null
           status?: Database["public"]["Enums"]["sign_status"]
+          tipo_pessoa?: string
+          uf?: string | null
           updated_at?: string
         }
         Update: {
+          apelido?: string | null
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          codigo?: string
+          complemento?: string | null
           cpf?: string
           created_at?: string
           created_by?: string | null
+          endereco?: string | null
           id?: string
           name?: string
           notes?: string | null
+          orgao_expedidor?: string | null
+          pais?: string
           phone?: string
+          photo_path?: string | null
+          rg?: string | null
           signed_at?: string | null
           status?: Database["public"]["Enums"]["sign_status"]
+          tipo_pessoa?: string
+          uf?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -170,18 +209,61 @@ export type Database = {
         }
         Relationships: []
       }
+      signature_documents: {
+        Row: {
+          content_type: string
+          created_at: string
+          file_name: string
+          file_size: number
+          id: string
+          signature_id: string
+          storage_path: string
+        }
+        Insert: {
+          content_type: string
+          created_at?: string
+          file_name: string
+          file_size: number
+          id?: string
+          signature_id: string
+          storage_path: string
+        }
+        Update: {
+          content_type?: string
+          created_at?: string
+          file_name?: string
+          file_size?: number
+          id?: string
+          signature_id?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signature_documents_signature_id_fkey"
+            columns: ["signature_id"]
+            isOneToOne: false
+            referencedRelation: "signatures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       signatures: {
         Row: {
           client_id: string
           created_at: string
+          description: string | null
           expires_at: string | null
           id: string
           ip_address: string | null
           photo_path: string | null
+          require_photo: boolean
+          signature_path: string | null
           signed_at: string | null
           signer_cpf: string | null
+          signer_document: string | null
           signer_name: string | null
           status: Database["public"]["Enums"]["sign_status"]
+          title: string
           token: string
           token_hash: string
           user_agent: string | null
@@ -189,14 +271,19 @@ export type Database = {
         Insert: {
           client_id: string
           created_at?: string
+          description?: string | null
           expires_at?: string | null
           id?: string
           ip_address?: string | null
           photo_path?: string | null
+          require_photo?: boolean
+          signature_path?: string | null
           signed_at?: string | null
           signer_cpf?: string | null
+          signer_document?: string | null
           signer_name?: string | null
           status?: Database["public"]["Enums"]["sign_status"]
+          title?: string
           token: string
           token_hash: string
           user_agent?: string | null
@@ -204,14 +291,19 @@ export type Database = {
         Update: {
           client_id?: string
           created_at?: string
+          description?: string | null
           expires_at?: string | null
           id?: string
           ip_address?: string | null
           photo_path?: string | null
+          require_photo?: boolean
+          signature_path?: string | null
           signed_at?: string | null
           signer_cpf?: string | null
+          signer_document?: string | null
           signer_name?: string | null
           status?: Database["public"]["Enums"]["sign_status"]
+          title?: string
           token?: string
           token_hash?: string
           user_agent?: string | null

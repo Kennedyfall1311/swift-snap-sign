@@ -5,7 +5,7 @@ import { Plus } from "lucide-react";
 import { clientsQuery, type Client, type ClientWithSignatures } from "@/lib/queries";
 import { ClientRow } from "@/components/admin/ClientRow";
 import { ClientFormDialog } from "@/components/admin/ClientFormDialog";
-import { LinkDialog } from "@/components/admin/LinkDialog";
+import { SignatureRequestDialog } from "@/components/admin/SignatureRequestDialog";
 import { SignatureViewDialog } from "@/components/admin/SignatureViewDialog";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -97,8 +97,8 @@ function DashboardPage() {
         </div>
       </div>
 
-      <ClientFormDialog open={formOpen} onOpenChange={setFormOpen} onSaved={(c) => setLinkClient(c)} />
-      <LinkDialog client={linkClient} onOpenChange={(o) => !o && setLinkClient(null)} />
+      <ClientFormDialog open={formOpen} onOpenChange={setFormOpen} />
+      <SignatureRequestDialog open={!!linkClient} initialClient={linkClient} onOpenChange={(o) => !o && setLinkClient(null)} />
       <SignatureViewDialog client={viewClient} onOpenChange={(o) => !o && setViewClient(null)} />
     </>
   );

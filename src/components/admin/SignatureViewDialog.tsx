@@ -1,8 +1,11 @@
-import { CheckCircle2, Clock, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, ExternalLink, FileText, XCircle } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PhotoThumb, usePhotoUrl } from "./PhotoThumb";
 import { StatusBadge } from "./StatusBadge";
-import { formatCPF, formatDateTime, formatPhone, signLinkUrl } from "@/lib/format";
+import { formatDateTime, formatDocument, formatPhone, signLinkUrl } from "@/lib/format";
+import { getPrivateFileUrl } from "@/lib/admin.functions";
 import { latestSignature, type ClientWithSignatures } from "@/lib/queries";
 
 export function SignatureViewDialog({
@@ -14,6 +17,8 @@ export function SignatureViewDialog({
 }) {
   const sig = client ? latestSignature(client) : null;
   const { data: photo } = usePhotoUrl(sig?.photo_path);
+  const privateUrl = useServerFn(getPrivateFileUrl);
+  const { data: mark } = useQuery({ queryKey: ["signature-mark", sig?.signature_path], queryFn: () => privateUrl({ data: { bucket: "signature-marks", path: sig?.signature_path ?? "" } }), enabled: !!sig?.signature_path });
 
   return (
     <Dialog open={!!client} onOpenChange={onOpenChange}>
@@ -32,11 +37,14 @@ export function SignatureViewDialog({
               <PhotoThumb path={null} size="lg" />
             )}
 
-            {client.status === "ASSINADO" ? (
+            {sig && <div><h3 className="font-semibold">{sig.title}</h3>{sig.description && <p className="mt-1 text-sm text-muted-foreground">{sig.description}</p>}{sig.signature_documents?.length > 0 && <div className="mt-3 space-y-2">{sig.signature_documents.map((doc) => <AdminDocument key={doc.id} path={doc.storage_path} name={doc.file_name} />)}</div>}</div>}
+            {mark?.url && <div><p className="mb-2 text-sm font-semibold">Assinatura manual</p><div className="rounded-xl border border-border bg-background p-3"><img src={mark.url} alt="Assinatura manual" className="h-28 w-full object-contain" /></div></div>}
+
+             {(sig?.status ?? client.status) === "ASSINADO" ? (
               <div className="flex items-center gap-2 rounded-xl bg-ok-soft px-4 py-3 font-semibold text-ok-ink">
                 <CheckCircle2 className="size-5" /> ASSINATURA CONFIRMADA
               </div>
-            ) : client.status === "CANCELADO" ? (
+             ) : (sig?.status ?? client.status) === "CANCELADO" ? (
               <div className="flex items-center gap-2 rounded-xl bg-danger-soft px-4 py-3 font-semibold text-danger-ink">
                 <XCircle className="size-5" /> CANCELADO
               </div>
@@ -48,9 +56,9 @@ export function SignatureViewDialog({
 
             <dl className="divide-y divide-border text-sm">
               <Row k="Nome completo" v={sig?.signer_name ?? client.name} />
-              <Row k="CPF" v={<span className="font-mono">{formatCPF(sig?.signer_cpf ?? client.cpf)}</span>} />
+               <Row k={client.tipo_pessoa === "PJ" ? "CNPJ" : "CPF"} v={<span className="font-mono">{formatDocument(sig?.signer_document ?? sig?.signer_cpf ?? client.cpf, client.tipo_pessoa)}</span>} />
               <Row k="Telefone" v={formatPhone(client.phone)} />
-              <Row k="Status" v={<StatusBadge status={client.status} />} />
+               <Row k="Status" v={<StatusBadge status={sig?.status ?? client.status} />} />
               <Row k="Data e hora" v={formatDateTime(sig?.signed_at ?? client.signed_at)} />
               <Row k="IP" v={<span className="font-mono">{sig?.ip_address ?? "—"}</span>} />
               <Row k="Identificador" v={<span className="break-all font-mono text-xs">{sig?.id ?? "—"}</span>} />
@@ -65,6 +73,12 @@ export function SignatureViewDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+function AdminDocument({ path, name }: { path: string; name: string }) {
+  const getUrl = useServerFn(getPrivateFileUrl);
+  const { data } = useQuery({ queryKey: ["document", path], queryFn: () => getUrl({ data: { bucket: "documents", path } }) });
+  return <a href={data?.url} target="_blank" rel="noopener" className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-sm"><FileText className="size-4 text-primary" /><span className="min-w-0 flex-1 truncate">{name}</span><ExternalLink className="size-3.5" /></a>;
 }
 
 function Row({ k, v }: { k: string; v: React.ReactNode }) {

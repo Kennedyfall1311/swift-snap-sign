@@ -8,7 +8,7 @@ export function usePhotoUrl(path: string | null | undefined) {
   const fetchUrl = useServerFn(getPhotoUrl);
   return useQuery({
     queryKey: ["photo", path],
-    queryFn: () => fetchUrl({ data: { path: path! } }),
+    queryFn: () => fetchUrl({ data: { path: path ?? "" } }),
     enabled: !!path,
     staleTime: 8 * 60_000,
   });

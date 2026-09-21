@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { CheckCircle2, Loader2, ShieldCheck, AlertTriangle } from "lucide-react";
+import { CheckCircle2, Loader2, ShieldCheck, AlertTriangle, FileText, ExternalLink } from "lucide-react";
 import { getSignLinkInfo, submitSignature } from "@/lib/sign.functions";
-import { formatCPF, formatDateTime, isValidCPF } from "@/lib/format";
+import { formatDateTime, formatDocument, isValidDocument } from "@/lib/format";
 import { CameraCapture } from "@/components/sign/CameraCapture";
+import { SignaturePad } from "@/components/sign/SignaturePad";
 
 export const Route = createFileRoute("/assinar/$token")({
   loader: async ({ params }) => {
@@ -60,6 +61,7 @@ function SignPage() {
   const [name, setName] = useState(info.ok ? info.clientName : "");
   const [cpf, setCpf] = useState("");
   const [photo, setPhoto] = useState<string | null>(null);
+  const [signature, setSignature] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,15 +69,15 @@ function SignPage() {
 
   if (!info.ok) return <Status kind={info.reason} />;
 
-  const cpfValid = isValidCPF(cpf);
-  const canSubmit = name.trim().length >= 3 && cpfValid && !!photo && consent && !sending;
+  const cpfValid = isValidDocument(cpf, info.personType);
+  const canSubmit = name.trim().length >= 3 && cpfValid && (!info.requirePhoto || !!photo) && !!signature && consent && !sending;
 
   async function confirm() {
-    if (!canSubmit || !photo) return;
+    if (!canSubmit || !signature) return;
     setSending(true);
     setError(null);
     try {
-      const r = await submit({ data: { token, name: name.trim(), cpf, photo, consent: true } });
+      const r = await submit({ data: { token, name: name.trim(), document: cpf, photo, signature, consent: true } });
       if (r.ok) setDone({ signedAt: r.signedAt });
       else setError(r.error);
     } catch {
@@ -117,8 +119,10 @@ function SignPage() {
           <span className="font-display text-lg font-semibold">{info.companyName}</span>
         </div>
 
-        <h1 className="mt-8 text-3xl font-semibold leading-tight">Confirmação de Assinatura</h1>
+        <h1 className="mt-8 text-3xl font-semibold leading-tight">{info.title}</h1>
         <p className="mt-2 text-sm text-muted-foreground">{info.introText}</p>
+        {info.description && <p className="mt-3 rounded-xl bg-background p-4 text-sm">{info.description}</p>}
+        {info.documents.length > 0 && <section className="mt-6"><h2 className="text-sm font-semibold">Documentos para leitura</h2><div className="mt-2 space-y-2">{info.documents.map((doc) => <a key={doc.url} href={doc.url} target="_blank" rel="noopener" className="flex items-center gap-3 rounded-xl border border-border bg-background p-4 text-sm font-medium"><FileText className="size-5 text-primary" /><span className="min-w-0 flex-1 truncate">{doc.name}</span><ExternalLink className="size-4 text-muted-foreground" /></a>)}</div></section>}
 
         <label className="mt-7 block text-sm font-semibold">
           Nome completo
@@ -126,21 +130,21 @@ function SignPage() {
         </label>
 
         <label className="mt-5 block text-sm font-semibold">
-          CPF
+           {info.personType === "PJ" ? "CNPJ" : "CPF"}
           <input
             className={`${inputCls} font-mono tracking-wide ${cpf.length === 14 && !cpfValid ? "border-danger" : ""}`}
             inputMode="numeric"
-            placeholder="000.000.000-00"
+             placeholder={info.personType === "PJ" ? "00.000.000/0000-00" : "000.000.000-00"}
             value={cpf}
-            onChange={(e) => setCpf(formatCPF(e.target.value))}
+             onChange={(e) => setCpf(formatDocument(e.target.value, info.personType))}
           />
           {cpf.length === 14 && !cpfValid && <span className="mt-1 block text-xs font-normal text-danger-ink">CPF inválido</span>}
         </label>
 
-        <p className="mt-7 text-sm font-semibold">Foto</p>
-        <div className="mt-2">
-          <CameraCapture photo={photo} onPhoto={setPhoto} />
-        </div>
+        {info.requirePhoto && <><p className="mt-7 text-sm font-semibold">Foto de identificação</p><div className="mt-2"><CameraCapture photo={photo} onPhoto={setPhoto} /></div></>}
+        <p className="mt-7 text-sm font-semibold">Assine com o dedo</p>
+        <p className="mt-1 text-xs text-muted-foreground">Desenhe sua assinatura no campo abaixo.</p>
+        <div className="mt-2"><SignaturePad onChange={setSignature} /></div>
 
         <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-xl bg-background p-4">
           <input

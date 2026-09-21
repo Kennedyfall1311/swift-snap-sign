@@ -1,7 +1,8 @@
 # Roadmap
 
-- [x] Configurar autenticação administrativa e controle de acesso
-- [x] Criar banco, auditoria, links únicos e armazenamento privado de fotos
-- [x] Construir painel, clientes, assinaturas e configurações
-- [x] Construir confirmação pública com câmera, CPF e consentimento
-- [x] Ativar atualização em tempo real e validar telas principais
+- [ ] Expandir o cadastro de clientes com código, tipo de pessoa, documentos e endereço
+- [ ] Criar importação de clientes nas configurações
+- [ ] Transformar Assinaturas no fluxo de criação de links com seleção de cliente e documentos
+- [ ] Permitir foto opcional, atualização da foto do cliente e assinatura manual
+- [ ] Exibir documentos ao cliente antes da confirmação
+- [ ] Validar os fluxos no painel e no celular

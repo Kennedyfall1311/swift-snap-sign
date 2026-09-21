@@ -1,11 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, Upload, Trash2 } from "lucide-react";
+import { Download, FileSpreadsheet, Loader2, Upload, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { settingsQuery } from "@/lib/queries";
 import { fieldCls } from "@/components/admin/ClientFormDialog";
+import { importClients } from "@/lib/admin.functions";
+import { isValidDocument, onlyDigits } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({
@@ -194,10 +197,40 @@ function SettingsPage() {
       </form>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <ImportSection />
         <PasswordSection />
       </div>
     </>
   );
+}
+
+const csvHeaders = ["codigo", "tipo_pessoa", "cpf_cnpj", "rg", "orgao_expedidor", "nome", "apelido", "telefone", "endereco", "complemento", "bairro", "cidade", "uf", "pais", "cep", "observacao"];
+function parseCsvLine(line: string) { const out: string[] = []; let value = ""; let quoted = false; for (let i = 0; i < line.length; i++) { const c = line[i]; if (c === '"') { if (quoted && line[i + 1] === '"') { value += '"'; i++; } else quoted = !quoted; } else if ((c === ";" || c === ",") && !quoted) { out.push(value.trim()); value = ""; } else value += c; } out.push(value.trim()); return out; }
+function ImportSection() {
+  const importFn = useServerFn(importClients); const qc = useQueryClient(); const [loading, setLoading] = useState(false);
+  const template = () => { const blob = new Blob([`${csvHeaders.join(";")}\n001;PF;12345678909;12.345.678;SSP;Nome completo;Apelido;11999999999;Rua Exemplo, 10;;Centro;São Paulo;SP;Brasil;01001000;\n`], { type: "text/csv;charset=utf-8" }); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "modelo-clientes.csv"; a.click(); URL.revokeObjectURL(a.href); };
+  const upload = async (file: File): Promise<void> => {
+    if (file.size > 2 * 1024 * 1024) { toast.error("CSV muito grande (máx. 2MB)"); return; }
+    setLoading(true);
+    try {
+      const text = await file.text();
+      const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).filter(Boolean);
+      if (lines.length < 2 || !lines[0]) throw new Error("O arquivo não possui clientes");
+      const headers = parseCsvLine(lines[0]).map((x) => x.toLowerCase());
+      const rows = lines.slice(1).map((line, index) => {
+        const values = parseCsvLine(line);
+        const row: Record<string, string> = Object.fromEntries(headers.map((h, i) => [h, values[i] ?? ""]));
+        const tipo = row["tipo_pessoa"]?.toUpperCase() === "PJ" ? "PJ" as const : "PF" as const;
+        const document = onlyDigits(row["cpf_cnpj"] ?? row["cpf"] ?? "");
+        if (!row["codigo"] || !row["nome"] || !isValidDocument(document, tipo)) throw new Error(`Linha ${index + 2}: código, nome ou CPF/CNPJ inválido`);
+        return { codigo: row["codigo"], tipo_pessoa: tipo, cpf: document, name: row["nome"], phone: onlyDigits(row["telefone"] ?? ""), rg: row["rg"] || null, orgao_expedidor: row["orgao_expedidor"] || null, apelido: row["apelido"] || null, endereco: row["endereco"] || null, complemento: row["complemento"] || null, bairro: row["bairro"] || null, cidade: row["cidade"] || null, uf: row["uf"]?.toUpperCase() || null, pais: row["pais"] || "Brasil", cep: onlyDigits(row["cep"] ?? "") || null, notes: row["observacao"] || null };
+      });
+      const result = await importFn({ data: { rows } });
+      await qc.invalidateQueries({ queryKey: ["clients"] });
+      toast.success(`${result.imported} cliente(s) importado(s)`);
+    } catch (e) { toast.error((e as Error).message); } finally { setLoading(false); }
+  };
+  return <Section title="Importar clientes"><p className="text-sm text-muted-foreground">Use um arquivo CSV. Cadastros com o mesmo código serão atualizados.</p><div className="mt-4 flex flex-wrap gap-3"><button type="button" onClick={template} className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium"><Download className="size-4" /> Baixar modelo</button><label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground">{loading ? <Loader2 className="size-4 animate-spin" /> : <FileSpreadsheet className="size-4" />} Importar CSV<input type="file" accept=".csv,text/csv" className="hidden" disabled={loading} onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(f); e.target.value = ""; }} /></label></div></Section>;
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

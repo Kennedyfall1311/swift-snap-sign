@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { clientsQuery, type Client, type ClientWithSignatures } from "@/lib/queries";
 import { onlyDigits } from "@/lib/format";
 import { ClientRow } from "@/components/admin/ClientRow";
-import { LinkDialog } from "@/components/admin/LinkDialog";
 import { SignatureViewDialog } from "@/components/admin/SignatureViewDialog";
+import { SignatureRequestDialog } from "@/components/admin/SignatureRequestDialog";
 
 export const Route = createFileRoute("/_authenticated/assinaturas")({
   head: () => ({
@@ -39,6 +39,7 @@ export function useFilteredClients(filter: Filter, q: string) {
       if (!term) return true;
       return (
         c.name.toLowerCase().includes(term) ||
+        c.codigo.toLowerCase().includes(term) ||
         (digits.length > 0 && (c.cpf.includes(digits) || c.phone.includes(digits)))
       );
     });
@@ -76,7 +77,7 @@ export function FilterBar({
         <Search className="size-4 text-muted-foreground" />
         <input
           className="w-full bg-transparent outline-none placeholder:text-muted-foreground"
-          placeholder="Nome, CPF ou telefone"
+          placeholder="Código, CPF, CNPJ ou nome"
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
@@ -91,11 +92,11 @@ function SignaturesPage() {
   const { list, isLoading } = useFilteredClients(filter, q);
   const [linkClient, setLinkClient] = useState<Client | null>(null);
   const [viewClient, setViewClient] = useState<ClientWithSignatures | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
 
   return (
     <>
-      <h1 className="text-3xl font-semibold">Assinaturas</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Todos os registros de assinatura</p>
+      <div className="flex flex-wrap items-center justify-between gap-4"><div><h1 className="text-3xl font-semibold">Assinaturas</h1><p className="mt-1 text-sm text-muted-foreground">Crie links com documentos e acompanhe as confirmações</p></div><button onClick={() => setCreateOpen(true)} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"><Plus className="size-4" /> Nova assinatura</button></div>
       <FilterBar filter={filter} setFilter={setFilter} q={q} setQ={setQ} />
 
       <div className="mt-5 rounded-2xl bg-card ring-1 ring-border">
@@ -110,8 +111,9 @@ function SignaturesPage() {
         </div>
       </div>
 
-      <LinkDialog client={linkClient} onOpenChange={(o) => !o && setLinkClient(null)} />
+      <SignatureRequestDialog open={!!linkClient} initialClient={linkClient} onOpenChange={(o) => !o && setLinkClient(null)} />
       <SignatureViewDialog client={viewClient} onOpenChange={(o) => !o && setViewClient(null)} />
+      <SignatureRequestDialog open={createOpen} onOpenChange={setCreateOpen} />
     </>
   );
 }

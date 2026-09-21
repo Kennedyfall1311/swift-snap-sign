@@ -4,7 +4,6 @@ import { Plus } from "lucide-react";
 import { type Client, type ClientWithSignatures } from "@/lib/queries";
 import { ClientRow } from "@/components/admin/ClientRow";
 import { ClientFormDialog } from "@/components/admin/ClientFormDialog";
-import { LinkDialog } from "@/components/admin/LinkDialog";
 import { SignatureViewDialog } from "@/components/admin/SignatureViewDialog";
 import { FilterBar, useFilteredClients } from "./assinaturas";
 
@@ -27,7 +26,6 @@ function ClientsPage() {
   const { list, isLoading } = useFilteredClients(filter, q);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
-  const [linkClient, setLinkClient] = useState<Client | null>(null);
   const [viewClient, setViewClient] = useState<ClientWithSignatures | null>(null);
 
   return (
@@ -52,7 +50,7 @@ function ClientsPage() {
       <div className="mt-5 rounded-2xl bg-card ring-1 ring-border">
         <div className="hidden grid-cols-[44px_1fr_auto_144px_auto] items-center gap-4 border-b border-border px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground md:grid">
           <span />
-          <span>Nome / CPF</span>
+          <span>Código / Nome / Documento</span>
           <span>Status</span>
           <span className="text-right">Data</span>
           <span className="pr-2 text-right">Ações</span>
@@ -69,7 +67,6 @@ function ClientsPage() {
                 c={c}
                 actions={{
                   onView: setViewClient,
-                  onLink: setLinkClient,
                   onEdit: (cl) => {
                     setEditing(cl);
                     setFormOpen(true);
@@ -85,11 +82,8 @@ function ClientsPage() {
         open={formOpen}
         onOpenChange={setFormOpen}
         client={editing}
-        onSaved={(c) => {
-          if (!editing) setLinkClient(c);
-        }}
+        onSaved={() => {}}
       />
-      <LinkDialog client={linkClient} onOpenChange={(o) => !o && setLinkClient(null)} />
       <SignatureViewDialog client={viewClient} onOpenChange={(o) => !o && setViewClient(null)} />
     </>
   );

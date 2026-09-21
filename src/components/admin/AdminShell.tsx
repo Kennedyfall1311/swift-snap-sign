@@ -18,8 +18,8 @@ export function AdminShell({
   userName,
 }: {
   children: ReactNode;
-  userEmail?: string;
-  userName?: string;
+  userEmail?: string | undefined;
+  userName?: string | undefined;
 }) {
   useRealtimeClients();
   const navigate = useNavigate();

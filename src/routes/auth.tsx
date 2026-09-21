@@ -39,24 +39,32 @@ function AuthPage() {
     });
   }, [navigate]);
 
-  // eslint-disable-next-line consistent-return
-  async function submit(e: React.FormEvent): Promise<unknown> {
+  async function submit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
     setInfo(null);
     if (mode === "forgot") {
       const em = z.string().trim().email().safeParse(email);
-      if (!em.success) return toast.error("Informe um e-mail válido");
+      if (!em.success) {
+        toast.error("Informe um e-mail válido");
+        return;
+      }
       setLoading(true);
       const { error } = await supabase.auth.resetPasswordForEmail(em.data, {
         redirectTo: `${window.location.origin}/redefinir-senha`,
       });
       setLoading(false);
-      if (error) return toast.error(error.message);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
       setInfo("Enviamos um link para redefinir sua senha. Verifique seu e-mail.");
       return;
     }
     const parsed = schema.safeParse({ email, password, name: name || undefined });
-    if (!parsed.success) return toast.error(parsed.error.issues[0]?.message ?? "Dados inválidos");
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Dados inválidos");
+      return;
+    }
     setLoading(true);
     if (mode === "login") {
       const { error } = await supabase.auth.signInWithPassword({
@@ -64,7 +72,10 @@ function AuthPage() {
         password: parsed.data.password,
       });
       setLoading(false);
-      if (error) return toast.error("E-mail ou senha incorretos");
+      if (error) {
+        toast.error("E-mail ou senha incorretos");
+        return;
+      }
       navigate({ to: "/dashboard", replace: true });
     } else {
       const { data, error } = await supabase.auth.signUp({
@@ -73,7 +84,10 @@ function AuthPage() {
         options: { emailRedirectTo: window.location.origin, data: { name: parsed.data.name } },
       });
       setLoading(false);
-      if (error) return toast.error(error.message);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
       if (data.session) navigate({ to: "/dashboard", replace: true });
       else setInfo("Conta criada. Confirme seu e-mail pelo link enviado e depois faça login.");
     }

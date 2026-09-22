@@ -33,8 +33,8 @@ export function AdminShell({
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto flex max-w-[1560px]">
+    <div className="min-h-screen overflow-x-hidden bg-background">
+      <div className="flex min-h-screen w-full">
         <aside className="sticky top-0 hidden h-screen w-[236px] shrink-0 flex-col justify-between bg-sidebar px-5 py-6 lg:flex">
           <div>
             <div className="flex items-center gap-2.5">
@@ -88,7 +88,7 @@ export function AdminShell({
             </button>
           </header>
 
-          <main className="flex-1 px-4 pb-24 pt-5 sm:px-8 sm:py-8 lg:px-10 lg:pb-8">{children}</main>
+          <main className="min-w-0 flex-1 px-4 pb-24 pt-5 sm:px-8 sm:py-8 lg:px-10 lg:pb-8">{children}</main>
         </div>
       </div>
 

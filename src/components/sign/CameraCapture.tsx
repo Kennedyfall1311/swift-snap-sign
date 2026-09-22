@@ -49,6 +49,17 @@ export function CameraCapture({
   const [error, setError] = useState<string | null>(null);
   const [facing, setFacing] = useState<"user" | "environment">("user");
 
+  const attachStream = useCallback((video: HTMLVideoElement | null) => {
+    videoRef.current = video;
+    const stream = streamRef.current;
+    if (!video || !stream) return;
+
+    video.srcObject = stream;
+    video.play().catch(() => {
+      // Alguns navegadores só liberam o play após o evento loadedmetadata.
+    });
+  }, []);
+
   const stop = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
@@ -65,21 +76,44 @@ export function CameraCapture({
       setStarting(true);
       try {
         stop();
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: mode }, width: { ideal: 1280 }, height: { ideal: 1280 } },
-          audio: false,
-        });
+        const attempts: MediaStreamConstraints[] = [
+          {
+            video: { facingMode: { exact: mode }, width: { ideal: 1280 }, height: { ideal: 1280 } },
+            audio: false,
+          },
+          {
+            video: { facingMode: { ideal: mode }, width: { ideal: 1280 }, height: { ideal: 1280 } },
+            audio: false,
+          },
+          { video: true, audio: false },
+        ];
+
+        let stream: MediaStream | null = null;
+        let lastError: unknown = null;
+        for (const constraints of attempts) {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+            break;
+          } catch (err) {
+            lastError = err;
+          }
+        }
+        if (!stream) throw lastError;
+
         streamRef.current = stream;
         setFacing(mode);
         setStreaming(true);
-        requestAnimationFrame(() => {
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-            videoRef.current.play().catch(() => {});
-          }
-        });
-      } catch {
-        setError("Não foi possível acessar a câmera. Verifique a permissão ou envie uma foto.");
+      } catch (err) {
+        const name = err instanceof DOMException ? err.name : "";
+        if (name === "NotAllowedError" || name === "SecurityError") {
+          setError("A permissão da câmera está bloqueada. Libere o acesso nas configurações do navegador e tente novamente.");
+        } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+          setError("Nenhuma câmera foi encontrada neste aparelho. Você pode enviar uma foto da galeria.");
+        } else if (name === "NotReadableError" || name === "TrackStartError") {
+          setError("A câmera está sendo usada por outro aplicativo. Feche-o e tente novamente.");
+        } else {
+          setError("Não foi possível iniciar a câmera. Tente abrir este link no Chrome ou Safari, ou envie uma foto.");
+        }
       } finally {
         setStarting(false);
       }
@@ -139,10 +173,11 @@ export function CameraCapture({
       <div>
         <div className={frame}>
           <video
-            ref={videoRef}
+            ref={attachStream}
             playsInline
             muted
             autoPlay
+            onLoadedMetadata={(event) => event.currentTarget.play().catch(() => {})}
             className="size-full object-cover"
             style={{ transform: facing === "user" ? "scaleX(-1)" : undefined }}
           />

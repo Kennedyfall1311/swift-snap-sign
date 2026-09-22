@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatCEP, formatDocument, formatPhone, isValidDocument, onlyDigits } from "@/lib/format";
 import { logAudit } from "@/lib/admin.functions";
 import type { Client } from "@/lib/queries";
+import { PhotoThumb } from "./PhotoThumb";
 
 const schema = z.object({
   codigo: z.string().trim().min(1, "Informe o código").max(40),
@@ -109,6 +110,17 @@ export function ClientFormDialog({
           <DialogTitle className="font-display text-xl">{client ? "Editar cliente" : "Novo cliente"}</DialogTitle>
           <DialogDescription>O cadastro fica disponível para uso nas solicitações de assinatura.</DialogDescription>
         </DialogHeader>
+        {client && (
+          <div className="flex items-center gap-4 rounded-xl bg-muted p-3">
+            <PhotoThumb path={client.photo_path} className="size-16" />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">Foto do cliente</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {client.photo_path ? "Registrada na primeira assinatura com foto." : "Será preenchida na primeira assinatura com foto."}
+              </p>
+            </div>
+          </div>
+        )}
         <form
           onSubmit={(e) => {
             e.preventDefault();

@@ -172,8 +172,16 @@ export const submitSignature = createServerFn({ method: "POST" })
 
     await supabaseAdmin
       .from("clients")
-      .update({ status: "ASSINADO", signed_at: signedAt, ...(photoPath ? { photo_path: photoPath } : {}) })
+      .update({ status: "ASSINADO", signed_at: signedAt })
       .eq("id", sig.client_id);
+
+    if (photoPath) {
+      await supabaseAdmin
+        .from("clients")
+        .update({ photo_path: photoPath })
+        .eq("id", sig.client_id)
+        .is("photo_path", null);
+    }
 
     await Promise.all([
       logAttempt(true),

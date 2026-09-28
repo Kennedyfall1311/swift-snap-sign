@@ -564,6 +564,8 @@ Criar migrations/schema do PostgreSQL, backend, frontend e todas as APIs necess�
 
 Entregar o sistema funcional de ponta a ponta, não apenas telas estáticas.
 
+> **Instalação em VPS:** consulte [o guia em português](docs/instalacao-vps.md). O port autônomo para PostgreSQL local e PM2 ainda não foi implementado; o guia distingue os preparativos disponíveis das etapas que dependem desse trabalho.
+
 This project was built with [Lovable](https://lovable.dev).
 
 **Live app**: https://swift-snap-sign.lovable.app

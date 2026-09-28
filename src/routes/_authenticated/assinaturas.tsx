@@ -2,9 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Plus, Search } from "lucide-react";
-import { clientsQuery, type Client, type ClientWithSignatures } from "@/lib/queries";
+import { clientsQuery, type SignatureWithDocuments, type ClientWithSignatures } from "@/lib/queries";
 import { onlyDigits } from "@/lib/format";
-import { ClientRow } from "@/components/admin/ClientRow";
+import { Button } from "@/components/ui/button";
+import { SignatureRow, type SignatureSelection } from "@/components/admin/SignatureRow";
 import { SignatureViewDialog } from "@/components/admin/SignatureViewDialog";
 import { SignatureRequestDialog } from "@/components/admin/SignatureRequestDialog";
 
@@ -29,20 +30,19 @@ const filters: { key: Filter; label: string }[] = [
   { key: "CANCELADO", label: "Canceladas" },
 ];
 
-export function useFilteredClients(filter: Filter, q: string) {
+export function useFilteredSignatures(filter: Filter, q: string) {
   const { data: clients = [], isLoading } = useQuery(clientsQuery);
   const list = useMemo(() => {
     const term = q.trim().toLowerCase();
     const digits = onlyDigits(q);
-    return clients.filter((c) => {
-      if (filter !== "TODAS" && c.status !== filter) return false;
-      if (!term) return true;
-      return (
-        c.name.toLowerCase().includes(term) ||
-        c.codigo.toLowerCase().includes(term) ||
-        (digits.length > 0 && (c.cpf.includes(digits) || c.phone.includes(digits)))
-      );
-    });
+    return clients.flatMap((client: ClientWithSignatures) =>
+      (client.signatures ?? []).filter((signature: SignatureWithDocuments) =>
+        (filter === "TODAS" || signature.status === filter) &&
+        (!term || client.name.toLowerCase().includes(term) || client.codigo.toLowerCase().includes(term) ||
+          signature.title.toLowerCase().includes(term) ||
+          (digits.length > 0 && (client.cpf.includes(digits) || client.phone.includes(digits))))
+      ).map((signature) => ({ client, signature }))
+    ).sort((a, b) => b.signature.created_at.localeCompare(a.signature.created_at));
   }, [clients, filter, q]);
   return { list, isLoading };
 }
@@ -62,15 +62,16 @@ export function FilterBar({
     <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex gap-1 overflow-x-auto rounded-xl bg-card p-1 ring-1 ring-border">
         {filters.map((f) => (
-          <button
+          <Button
             key={f.key}
+            variant="ghost"
             onClick={() => setFilter(f.key)}
             className={`shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
               filter === f.key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
             }`}
           >
             {f.label}
-          </button>
+          </Button>
         ))}
       </div>
       <label className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-sm sm:w-72">
@@ -89,14 +90,13 @@ export function FilterBar({
 function SignaturesPage() {
   const [filter, setFilter] = useState<Filter>("TODAS");
   const [q, setQ] = useState("");
-  const { list, isLoading } = useFilteredClients(filter, q);
-  const [linkClient, setLinkClient] = useState<Client | null>(null);
-  const [viewClient, setViewClient] = useState<ClientWithSignatures | null>(null);
+  const { list, isLoading } = useFilteredSignatures(filter, q);
+  const [viewSelection, setViewSelection] = useState<SignatureSelection | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-4"><div><h1 className="text-3xl font-semibold">Assinaturas</h1><p className="mt-1 text-sm text-muted-foreground">Crie links com documentos e acompanhe as confirmações</p></div><button onClick={() => setCreateOpen(true)} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"><Plus className="size-4" /> Nova assinatura</button></div>
+       <div className="flex flex-wrap items-center justify-between gap-4"><div><h1 className="text-3xl font-semibold">Assinaturas</h1><p className="mt-1 text-sm text-muted-foreground">Crie links com documentos e acompanhe as confirmações</p></div><Button onClick={() => setCreateOpen(true)} className="gap-2"><Plus className="size-4" /> Nova assinatura</Button></div>
       <FilterBar filter={filter} setFilter={setFilter} q={q} setQ={setQ} />
 
       <div className="mt-5 rounded-2xl bg-card ring-1 ring-border">
@@ -106,13 +106,12 @@ function SignaturesPage() {
           ) : list.length === 0 ? (
             <p className="px-5 py-12 text-center text-sm text-muted-foreground">Nenhum registro encontrado.</p>
           ) : (
-            list.map((c) => <ClientRow key={c.id} c={c} actions={{ onView: setViewClient, onLink: setLinkClient }} />)
+            list.map(({ client, signature }) => <SignatureRow key={signature.id} client={client} signature={signature} onView={setViewSelection} />)
           )}
         </div>
       </div>
 
-      <SignatureRequestDialog open={!!linkClient} initialClient={linkClient} onOpenChange={(o) => !o && setLinkClient(null)} />
-      <SignatureViewDialog client={viewClient} onOpenChange={(o) => !o && setViewClient(null)} />
+       <SignatureViewDialog selection={viewSelection} onOpenChange={(o) => !o && setViewSelection(null)} />
       <SignatureRequestDialog open={createOpen} onOpenChange={setCreateOpen} />
     </>
   );

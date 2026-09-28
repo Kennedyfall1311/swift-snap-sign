@@ -6,28 +6,29 @@ import { PhotoThumb, usePhotoUrl } from "./PhotoThumb";
 import { StatusBadge } from "./StatusBadge";
 import { formatDateTime, formatDocument, formatPhone, signLinkUrl } from "@/lib/format";
 import { getPrivateFileUrl } from "@/lib/admin.functions";
-import { latestSignature, type ClientWithSignatures } from "@/lib/queries";
+import type { SignatureSelection } from "./SignatureRow";
 
 export function SignatureViewDialog({
-  client,
+  selection,
   onOpenChange,
 }: {
-  client: ClientWithSignatures | null;
+  selection: SignatureSelection | null;
   onOpenChange: (o: boolean) => void;
 }) {
-  const sig = client ? latestSignature(client) : null;
+  const client = selection?.client;
+  const sig = selection?.signature;
   const { data: photo } = usePhotoUrl(sig?.photo_path);
   const privateUrl = useServerFn(getPrivateFileUrl);
   const { data: mark } = useQuery({ queryKey: ["signature-mark", sig?.signature_path], queryFn: () => privateUrl({ data: { bucket: "signature-marks", path: sig?.signature_path ?? "" } }), enabled: !!sig?.signature_path });
 
   return (
-    <Dialog open={!!client} onOpenChange={onOpenChange}>
+    <Dialog open={!!selection} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] max-w-md overflow-y-auto rounded-2xl">
         <DialogHeader>
           <DialogTitle className="font-display text-xl">Assinatura</DialogTitle>
           <DialogDescription>Detalhes do registro</DialogDescription>
         </DialogHeader>
-        {client && (
+        {client && sig && (
           <div className="space-y-4">
             {sig?.photo_path ? (
               <a href={photo?.url} target="_blank" rel="noopener" className="block">
@@ -40,11 +41,11 @@ export function SignatureViewDialog({
             {sig && <div><h3 className="font-semibold">{sig.title}</h3>{sig.description && <p className="mt-1 text-sm text-muted-foreground">{sig.description}</p>}{sig.signature_documents?.length > 0 && <div className="mt-3 space-y-2">{sig.signature_documents.map((doc) => <AdminDocument key={doc.id} path={doc.storage_path} name={doc.file_name} />)}</div>}</div>}
             {mark?.url && <div><p className="mb-2 text-sm font-semibold">Assinatura manual</p><div className="rounded-xl border border-border bg-background p-3"><img src={mark.url} alt="Assinatura manual" className="h-28 w-full object-contain" /></div></div>}
 
-             {(sig?.status ?? client.status) === "ASSINADO" ? (
+             {sig.status === "ASSINADO" ? (
               <div className="flex items-center gap-2 rounded-xl bg-ok-soft px-4 py-3 font-semibold text-ok-ink">
                 <CheckCircle2 className="size-5" /> ASSINATURA CONFIRMADA
               </div>
-             ) : (sig?.status ?? client.status) === "CANCELADO" ? (
+              ) : sig.status === "CANCELADO" ? (
               <div className="flex items-center gap-2 rounded-xl bg-danger-soft px-4 py-3 font-semibold text-danger-ink">
                 <XCircle className="size-5" /> CANCELADO
               </div>
@@ -55,13 +56,13 @@ export function SignatureViewDialog({
             )}
 
             <dl className="divide-y divide-border text-sm">
-              <Row k="Nome completo" v={sig?.signer_name ?? client.name} />
-               <Row k={client.tipo_pessoa === "PJ" ? "CNPJ" : "CPF"} v={<span className="font-mono">{formatDocument(sig?.signer_document ?? sig?.signer_cpf ?? client.cpf, client.tipo_pessoa)}</span>} />
+              <Row k="Nome completo" v={sig.signer_name ?? client.name} />
+               <Row k={client.tipo_pessoa === "PJ" ? "CNPJ" : "CPF"} v={<span className="font-mono">{formatDocument(sig.signer_document ?? sig.signer_cpf ?? client.cpf, client.tipo_pessoa)}</span>} />
               <Row k="Telefone" v={formatPhone(client.phone)} />
-               <Row k="Status" v={<StatusBadge status={sig?.status ?? client.status} />} />
-              <Row k="Data e hora" v={formatDateTime(sig?.signed_at ?? client.signed_at)} />
-              <Row k="IP" v={<span className="font-mono">{sig?.ip_address ?? "—"}</span>} />
-              <Row k="Identificador" v={<span className="break-all font-mono text-xs">{sig?.id ?? "—"}</span>} />
+               <Row k="Status" v={<StatusBadge status={sig.status} />} />
+              <Row k="Data e hora" v={formatDateTime(sig.signed_at)} />
+              <Row k="IP" v={<span className="font-mono">{sig.ip_address ?? "—"}</span>} />
+              <Row k="Identificador" v={<span className="break-all font-mono text-xs">{sig.id}</span>} />
               {sig && sig.status === "PENDENTE" && (
                 <Row k="Link" v={<span className="break-all font-mono text-xs">{signLinkUrl(sig.token)}</span>} />
               )}

@@ -27,7 +27,7 @@ function hasExpectedFileSignature(bytes: Buffer, type: "application/pdf" | "imag
   return bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
 }
 
-/** Creates (or returns the active) signature link for a client. Returns the plain token. */
+/** Creates an independent signature request for a client. Returns its unique token. */
 export const generateSignLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
@@ -37,23 +37,6 @@ export const generateSignLink = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabase, userId } = context;
     const { randomToken, sha256Hex } = await import("./crypto.server");
-
-    const { data: existing } = await supabase
-      .from("signatures")
-      .select("id, token, status, expires_at")
-      .eq("client_id", data.clientId)
-      .eq("status", "PENDENTE")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const notExpired = existing && (!existing.expires_at || new Date(existing.expires_at) > new Date());
-    if (existing && notExpired && !data.regenerate && !data.title && !data.documents?.length) {
-      return { token: existing.token, signatureId: existing.id, expiresAt: existing.expires_at };
-    }
-    if (existing) {
-      await supabase.from("signatures").update({ status: "CANCELADO" }).eq("id", existing.id);
-    }
 
     const { data: settings } = await supabase
       .from("app_settings")

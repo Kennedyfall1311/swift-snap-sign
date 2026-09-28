@@ -9,3 +9,5 @@
 - [x] Separar a área de Clientes do histórico de assinaturas
 - [x] Mostrar e preservar a primeira foto no cadastro do cliente
 - [x] Corrigir o recorte lateral e a faixa branca da página
+- [x] Documentar preparação, publicação, segurança, backup e restauração para VPS Ubuntu
+- [ ] Implementar o port autônomo para PostgreSQL local, arquivos privados, login próprio e PM2 (ainda não implementado)

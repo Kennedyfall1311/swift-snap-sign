@@ -1,5 +1,7 @@
 # Welcome to your Lovable project
 
+> **Instalação em VPS:** consulte [o guia em português](docs/instalacao-vps.md). O port autônomo para PostgreSQL local e PM2 ainda não foi implementado; o guia distingue os preparativos disponíveis das etapas que dependem desse trabalho.
+
 This project was built with [Lovable](https://lovable.dev).
 
 ## Build with Lovable

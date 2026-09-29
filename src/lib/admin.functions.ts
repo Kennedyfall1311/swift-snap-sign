@@ -31,7 +31,7 @@ function hasExpectedFileSignature(bytes: Buffer, type: "application/pdf" | "imag
 export const generateSignLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ clientId: z.string().uuid(), regenerate: z.boolean().optional(), title: z.string().trim().min(3).max(160).optional(), description: z.string().trim().max(1000).optional(), requirePhoto: z.boolean().optional(), documents: z.array(z.object({ name: z.string().min(1).max(180), type: z.enum(["application/pdf", "image/jpeg", "image/png"]), data: z.string().max(14_000_000) })).max(10).optional() }).parse(d),
+    z.object({ clientId: z.string().uuid(), title: z.string().trim().min(3).max(160).optional(), description: z.string().trim().max(1000).optional(), requirePhoto: z.boolean().optional(), documents: z.array(z.object({ name: z.string().min(1).max(180), type: z.enum(["application/pdf", "image/jpeg", "image/png"]), data: z.string().max(14_000_000) })).max(10).optional() }).parse(d),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);

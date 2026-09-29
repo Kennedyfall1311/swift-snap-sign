@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCEP, formatDateTime, formatDocument, formatPhone, isValidDocument, onlyDigits } from "@/lib/format";
 import { logAudit } from "@/lib/admin.functions";
-import type { ClientWithSignatures, SignatureWithDocuments } from "@/lib/queries";
+import type { Client, ClientWithSignatures, SignatureWithDocuments } from "@/lib/queries";
 import { PhotoThumb } from "./PhotoThumb";
 import { StatusBadge } from "./StatusBadge";
 
@@ -40,7 +40,7 @@ export function ClientFormDialog({
   open: boolean;
   onOpenChange: (o: boolean) => void;
   client?: ClientWithSignatures | null;
-  onSaved?: (c: ClientWithSignatures) => void;
+  onSaved?: (c: Client) => void;
   onViewSignature?: (signature: SignatureWithDocuments) => void;
 }) {
   const qc = useQueryClient();

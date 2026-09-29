@@ -34,11 +34,14 @@ export function SignatureRow({ client, signature, onView }: SignatureSelection &
 
   return (
     <div className="flex min-w-0 items-center gap-3 px-4 py-3.5 sm:gap-4 sm:px-5">
-      <PhotoThumb path={signature.photo_path ?? client.photo_path} onClick={() => onView({ client, signature })} />
+      <PhotoThumb path={signature.photo_path} onClick={() => onView({ client, signature })} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold">{signature.title}</p>
         <p className="truncate text-xs text-muted-foreground">{client.name} · {client.codigo} · {formatDocument(client.cpf, client.tipo_pessoa)}</p>
-        <p className="mt-1 text-xs text-muted-foreground sm:hidden">{formatDateTime(signature.signed_at ?? signature.created_at)}</p>
+        <div className="mt-1 flex flex-wrap items-center gap-2 sm:hidden">
+          <StatusBadge status={signature.status} />
+          <span className="text-xs text-muted-foreground">{formatDateTime(signature.signed_at ?? signature.created_at)}</span>
+        </div>
       </div>
       <StatusBadge status={signature.status} className="hidden shrink-0 sm:inline-flex" />
       <span className="hidden w-32 shrink-0 text-right text-xs text-muted-foreground md:block">{formatDateTime(signature.signed_at ?? signature.created_at)}</span>

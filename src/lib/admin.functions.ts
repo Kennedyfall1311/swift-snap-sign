@@ -74,7 +74,7 @@ export const generateSignLink = createServerFn({ method: "POST" })
       if (docsError) throw new Error("Não foi possível registrar os documentos");
     }
 
-    await supabase.from("clients").update({ status: "PENDENTE", signed_at: null }).eq("id", data.clientId);
+    await supabase.from("clients").update({ status: "PENDENTE" }).eq("id", data.clientId);
 
     const meta = reqMeta();
     await supabase.from("audit_logs").insert({

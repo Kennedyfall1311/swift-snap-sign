@@ -2,10 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Pencil, Plus, Search } from "lucide-react";
-import { clientsQuery, type Client } from "@/lib/queries";
+import { Button } from "@/components/ui/button";
+import { clientsQuery, type ClientWithSignatures } from "@/lib/queries";
 import { formatDocument, formatPhone, onlyDigits } from "@/lib/format";
 import { ClientFormDialog } from "@/components/admin/ClientFormDialog";
 import { PhotoThumb } from "@/components/admin/PhotoThumb";
+import { SignatureViewDialog } from "@/components/admin/SignatureViewDialog";
+import type { SignatureSelection } from "@/components/admin/SignatureRow";
 
 export const Route = createFileRoute("/_authenticated/clientes")({
   head: () => ({
@@ -14,6 +17,8 @@ export const Route = createFileRoute("/_authenticated/clientes")({
       { name: "description", content: "Consulte e mantenha o cadastro de clientes." },
       { property: "og:title", content: "Clientes — Verifica" },
       { property: "og:description", content: "Consulte e mantenha o cadastro de clientes." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -35,7 +40,9 @@ function ClientsPage() {
     );
   }, [clients, q]);
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Client | null>(null);
+   const [editing, setEditing] = useState<ClientWithSignatures | null>(null);
+   const [viewSelection, setViewSelection] = useState<SignatureSelection | null>(null);
+   const currentClient = clients.find((client) => client.id === editing?.id) ?? editing;
 
   return (
     <>
@@ -44,15 +51,15 @@ function ClientsPage() {
           <h1 className="text-3xl font-semibold">Clientes</h1>
           <p className="mt-1 text-sm text-muted-foreground">{list.length} cliente(s)</p>
         </div>
-        <button
+         <Button
           onClick={() => {
             setEditing(null);
             setFormOpen(true);
           }}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-strong"
+           className="h-auto min-h-10 px-4 py-2.5"
         >
           <Plus className="size-4" /> Novo cliente
-        </button>
+         </Button>
       </div>
 
       <label className="mt-6 flex w-full items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-sm sm:max-w-md">
@@ -86,14 +93,28 @@ function ClientsPage() {
       <ClientFormDialog
         open={formOpen}
         onOpenChange={setFormOpen}
-        client={editing}
+         client={currentClient}
         onSaved={() => {}}
+         onViewSignature={(signature) => {
+           if (!currentClient) return;
+           setFormOpen(false);
+           setViewSelection({ client: currentClient, signature });
+         }}
       />
+       <SignatureViewDialog
+         selection={viewSelection}
+         onOpenChange={(open) => {
+           if (!open) {
+             setViewSelection(null);
+             setFormOpen(true);
+           }
+         }}
+       />
     </>
   );
 }
 
-function ClientRegistrationRow({ client, onEdit }: { client: Client; onEdit: () => void }) {
+function ClientRegistrationRow({ client, onEdit }: { client: ClientWithSignatures; onEdit: () => void }) {
   return (
     <div className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3.5 sm:gap-4 sm:px-5 md:grid-cols-[44px_minmax(0,1fr)_minmax(180px,0.65fr)_auto]">
       <PhotoThumb path={client.photo_path} />
@@ -108,15 +129,17 @@ function ClientRegistrationRow({ client, onEdit }: { client: Client; onEdit: () 
         <p className="truncate text-sm">{formatPhone(client.phone)}</p>
         <p className="truncate text-xs text-muted-foreground">{[client.cidade, client.uf].filter(Boolean).join(" / ") || "Local não informado"}</p>
       </div>
-      <button
+       <Button
         type="button"
         onClick={onEdit}
+         variant="ghost"
+         size="icon"
         title="Editar cliente"
         aria-label={`Editar ${client.name}`}
-        className="grid size-9 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+         className="shrink-0 text-muted-foreground"
       >
         <Pencil className="size-4" />
-      </button>
+       </Button>
     </div>
   );
 }

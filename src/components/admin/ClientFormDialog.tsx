@@ -3,13 +3,15 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
+import { Eye, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { formatCEP, formatDocument, formatPhone, isValidDocument, onlyDigits } from "@/lib/format";
+import { formatCEP, formatDateTime, formatDocument, formatPhone, isValidDocument, onlyDigits } from "@/lib/format";
 import { logAudit } from "@/lib/admin.functions";
-import type { Client } from "@/lib/queries";
+import type { ClientWithSignatures, SignatureWithDocuments } from "@/lib/queries";
 import { PhotoThumb } from "./PhotoThumb";
+import { StatusBadge } from "./StatusBadge";
 
 const schema = z.object({
   codigo: z.string().trim().min(1, "Informe o código").max(40),
@@ -33,11 +35,13 @@ export function ClientFormDialog({
   onOpenChange,
   client,
   onSaved,
+  onViewSignature,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  client?: Client | null;
-  onSaved?: (c: Client) => void;
+  client?: ClientWithSignatures | null;
+  onSaved?: (c: ClientWithSignatures) => void;
+  onViewSignature?: (signature: SignatureWithDocuments) => void;
 }) {
   const qc = useQueryClient();
   const audit = useServerFn(logAudit);
@@ -105,7 +109,7 @@ export function ClientFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto rounded-2xl">
+       <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto rounded-2xl">
         <DialogHeader>
           <DialogTitle className="font-display text-xl">{client ? "Editar cliente" : "Novo cliente"}</DialogTitle>
           <DialogDescription>O cadastro fica disponível para uso nas solicitações de assinatura.</DialogDescription>
@@ -177,6 +181,32 @@ export function ClientFormDialog({
             {client ? "Salvar alterações" : "Cadastrar cliente"}
           </button>
         </form>
+        {client && onViewSignature && (
+          <section className="mt-6 border-t border-border pt-5" aria-label="Histórico de assinaturas">
+            <h3 className="font-display text-lg font-semibold">Histórico de assinaturas</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{client.signatures?.length ?? 0} solicitação(ões)</p>
+            <div className="mt-3 divide-y divide-border border-y border-border">
+              {client.signatures?.length ? (
+                [...client.signatures]
+                  .sort((a, b) => b.created_at.localeCompare(a.created_at))
+                  .map((signature) => (
+                    <div key={signature.id} className="flex min-w-0 items-center gap-3 py-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold">{signature.title}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(signature.signed_at ?? signature.created_at)}</p>
+                      </div>
+                      <StatusBadge status={signature.status} className="shrink-0" />
+                      <Button type="button" variant="ghost" size="icon" title={`Visualizar ${signature.title}`} aria-label={`Visualizar ${signature.title}`} onClick={() => onViewSignature(signature)}>
+                        <Eye />
+                      </Button>
+                    </div>
+                  ))
+              ) : (
+                <p className="py-5 text-sm text-muted-foreground">Nenhuma assinatura para este cliente.</p>
+              )}
+            </div>
+          </section>
+        )}
       </DialogContent>
     </Dialog>
   );

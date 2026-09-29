@@ -2,8 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { clientsQuery, type Client, type ClientWithSignatures } from "@/lib/queries";
-import { ClientRow } from "@/components/admin/ClientRow";
+import { clientsQuery, type Client, type ClientWithSignatures, type SignatureWithDocuments } from "@/lib/queries";
+import { SignatureRow, type SignatureSelection } from "@/components/admin/SignatureRow";
 import { ClientFormDialog } from "@/components/admin/ClientFormDialog";
 import { SignatureRequestDialog } from "@/components/admin/SignatureRequestDialog";
 import { SignatureViewDialog } from "@/components/admin/SignatureViewDialog";
@@ -32,16 +32,18 @@ function startOfTodaySP() {
 function DashboardPage() {
   const { data: clients = [], isLoading } = useQuery(clientsQuery);
   const [formOpen, setFormOpen] = useState(false);
-  const [linkClient, setLinkClient] = useState<Client | null>(null);
-  const [viewClient, setViewClient] = useState<ClientWithSignatures | null>(null);
+  const [viewSelection, setViewSelection] = useState<SignatureSelection | null>(null);
 
   const today = startOfTodaySP();
   const total = clients.length;
-  const pending = clients.filter((c) => c.status === "PENDENTE").length;
-  const signed = clients.filter((c) => c.status === "ASSINADO").length;
-  const signedToday = clients.filter((c) => c.signed_at && new Date(c.signed_at) >= today).length;
-  const recent = [...clients]
-    .sort((a, b) => (b.signed_at ?? b.updated_at).localeCompare(a.signed_at ?? a.updated_at))
+  const signatures = clients.flatMap((client: ClientWithSignatures) =>
+    (client.signatures ?? []).map((signature: SignatureWithDocuments) => ({ client, signature }))
+  );
+  const pending = signatures.filter(({ signature }) => signature.status === "PENDENTE").length;
+  const signed = signatures.filter(({ signature }) => signature.status === "ASSINADO").length;
+  const signedToday = signatures.filter(({ signature }) => signature.signed_at && new Date(signature.signed_at) >= today).length;
+  const recent = [...signatures]
+    .sort((a, b) => b.signature.created_at.localeCompare(a.signature.created_at))
     .slice(0, 8);
 
   return (
@@ -66,7 +68,7 @@ function DashboardPage() {
           label="Assinados"
           value={signed}
           tone="ok"
-          hint={total ? `taxa de ${Math.round((signed / total) * 100)}%` : "—"}
+          hint={signatures.length ? `taxa de ${Math.round((signed / signatures.length) * 100)}%` : "—"}
         />
         <Stat label="Assinaturas hoje" value={signedToday} tone="brand" hint="desde 00:00" />
       </div>
@@ -86,20 +88,19 @@ function DashboardPage() {
             <p className="px-5 py-10 text-center text-sm text-muted-foreground">Carregando…</p>
           ) : recent.length === 0 ? (
             <div className="px-5 py-12 text-center">
-              <p className="text-sm font-medium">Nenhum cliente ainda</p>
-              <p className="mt-1 text-xs text-muted-foreground">Cadastre o primeiro cliente para gerar um link de assinatura.</p>
+              <p className="text-sm font-medium">Nenhuma assinatura ainda</p>
+              <p className="mt-1 text-xs text-muted-foreground">Crie a primeira solicitação na área de Assinaturas.</p>
             </div>
           ) : (
-            recent.map((c) => (
-              <ClientRow key={c.id} c={c} actions={{ onView: setViewClient, onLink: setLinkClient }} />
+            recent.map(({ client, signature }) => (
+              <SignatureRow key={signature.id} client={client} signature={signature} onView={setViewSelection} />
             ))
           )}
         </div>
       </div>
 
       <ClientFormDialog open={formOpen} onOpenChange={setFormOpen} />
-      <SignatureRequestDialog open={!!linkClient} initialClient={linkClient} onOpenChange={(o) => !o && setLinkClient(null)} />
-      <SignatureViewDialog client={viewClient} onOpenChange={(o) => !o && setViewClient(null)} />
+      <SignatureViewDialog selection={viewSelection} onOpenChange={(o) => !o && setViewSelection(null)} />
     </>
   );
 }

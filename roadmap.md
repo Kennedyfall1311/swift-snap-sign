@@ -13,3 +13,4 @@
 - [ ] Exibir o histórico individual de assinaturas dentro do cadastro do cliente
 - [x] Documentar preparação, publicação, segurança, backup e restauração para VPS Ubuntu
 - [ ] Implementar o port autônomo para PostgreSQL local, arquivos privados, login próprio e PM2 (ainda não implementado)
+- [ ] Entregar versão autônoma instalável em VPS com PostgreSQL e guia atualizado, preservando o ambiente atual

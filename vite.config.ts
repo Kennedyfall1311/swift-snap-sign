@@ -12,4 +12,6 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // The Lovable preview keeps its own Cloudflare target; external VPS builds use Node.
+  nitro: { preset: "node-server" },
 });

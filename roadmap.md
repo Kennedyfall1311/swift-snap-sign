@@ -10,7 +10,12 @@
 - [x] Mostrar e preservar a primeira foto no cadastro do cliente
 - [x] Corrigir o recorte lateral e a faixa branca da página
 - [x] Exibir cada assinatura separadamente no histórico e preservar solicitações pendentes anteriores
-- [ ] Exibir o histórico individual de assinaturas dentro do cadastro do cliente
+- [x] Exibir o histórico individual de assinaturas dentro do cadastro do cliente
 - [x] Documentar preparação, publicação, segurança, backup e restauração para VPS Ubuntu
 - [ ] Implementar o port autônomo para PostgreSQL local, arquivos privados, login próprio e PM2 (ainda não implementado)
 - [ ] Entregar versão autônoma instalável em VPS com PostgreSQL e guia atualizado, preservando o ambiente atual
+- [x] Criar esquema inicial PostgreSQL local e comandos de migração, criação e redefinição do primeiro administrador
+- [x] Configurar saída Node para compilações externas sem alterar a prévia atual
+- [ ] Conectar login, consultas e gravações ao banco local, sem dependência do Lovable Cloud
+- [ ] Migrar fotos/documentos para armazenamento privado e substituir eventos em tempo real
+- [ ] Validar a instalação VPS de ponta a ponta antes de apresentá-la como executável

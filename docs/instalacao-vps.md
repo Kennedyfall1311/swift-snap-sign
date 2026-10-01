@@ -1,6 +1,6 @@
 # Instalação em VPS Ubuntu — guia de operação
 
-> **Situação em 28/09/2026:** este é o guia para a **instalação autônoma planejada**, não um instalador pronto. O código atual ainda usa Lovable Cloud para autenticação, PostgreSQL, arquivos e eventos, e sua configuração de compilação usa Cloudflare como destino padrão. **Não execute `pm2 start` esperando que a versão atual funcione com um PostgreSQL local.** Antes da etapa 6, é necessário concluir o port descrito na seção «O que falta implementar». Este guia não migra os dados existentes; a instalação prevista é limpa.
+> **Situação em 01/10/2026:** a estrutura inicial do PostgreSQL, os comandos administrativos e o destino Node para compilações externas foram preparados. **A instalação autônoma ainda não está pronta**: as consultas, o login, os arquivos e os avisos no painel continuam ligados ao Lovable Cloud. Não execute `pm2 start` esperando uma instalação funcional com PostgreSQL local. Este guia não migra os dados existentes; a instalação prevista é limpa.
 
 ## 1. Arquitetura prevista e requisitos
 
@@ -63,6 +63,23 @@ CREATE DATABASE assinaturas OWNER assinaturas_app ENCODING 'UTF8';
 
 Confirme que `listen_addresses` no PostgreSQL não expõe a porta publicamente (`SHOW listen_addresses;`); o valor `localhost` é adequado. A aplicação futura deve usar uma URL local como `postgresql://assinaturas_app:<senha-codificada-para-URL>@127.0.0.1:5432/assinaturas`. Caracteres especiais da senha precisam ser codificados na URL. **Ainda não aplique as migrations em `supabase/migrations` neste banco:** elas dependem de esquemas/serviços específicos do Lovable Cloud e não constituem o schema autônomo da VPS.
 
+O projeto agora inclui `vps/migrations/001_initial.sql`, específico para instalação limpa. Após obter o código na VPS e instalar as dependências, o comando abaixo pode criar a estrutura inicial. **Isto prepara apenas o banco — não instala o aplicativo funcional.** Execute como o dono do banco, em um terminal cujo ambiente contenha `DATABASE_URL`; não coloque a senha diretamente no comando nem em um arquivo do repositório.
+
+```bash
+node vps/scripts/manage.mjs migrate
+```
+
+O comando registra a versão aplicada em `schema_migrations` e não repete a migração se for executado novamente. Ele exige um papel PostgreSQL chamado `assinaturas_app`, como criado acima. O banco contém `users`, `user_roles` separados, `sessions`, `clients`, `signatures`, `signature_documents`, `app_settings`, `audit_logs` e `sign_attempts`. **Não há restrição de uma assinatura por cliente**; documentos pertencem a cada solicitação. Dados e anexos do Lovable Cloud não são importados por este comando.
+
+Depois de aplicar a migração, estes comandos locais criam o primeiro administrador ou redefinem sua senha sem enviar e-mail; solicitam a senha no terminal, sem recebê-la como argumento de linha de comando:
+
+```bash
+node vps/scripts/manage.mjs create-admin admin@seudominio.com "Nome do administrador"
+node vps/scripts/manage.mjs reset-password admin@seudominio.com
+```
+
+A senha tem de 12 a 128 caracteres e é armazenada com `scrypt` e sal individual. A redefinição revoga as sessões existentes. **A tela de login ainda não usa essas contas; os comandos não habilitam o acesso ao aplicativo até a adaptação restante ser concluída.**
+
 ## 4. DNS, Nginx e HTTPS
 
 Depois de apontar o registro DNS para a VPS, confirme com `dig +short assinaturas.example.com` (instale `dnsutils` se necessário). Crie `/etc/nginx/sites-available/assinaturas` com o conteúdo abaixo, substituindo o domínio:
@@ -109,10 +126,10 @@ Confira `https://assinaturas.example.com` no navegador. Não use câmera nem pub
 
 O repositório **ainda não oferece** estes elementos para VPS autônoma:
 
-1. Compilação para servidor Node/PM2 (hoje o destino padrão de compilação é Cloudflare), com comando de início e endereço do artefato efetivamente gerado.
-2. Schema/migrations PostgreSQL independentes dos esquemas `auth`, `storage` e `realtime` do Lovable Cloud; devem contemplar usuários, papéis separados, sessões, clientes, solicitações, documentos, configurações, auditoria e tentativas. Cada solicitação deve ter seu próprio registro e seus próprios arquivos — novas assinaturas nunca sobrescrevem as antigas.
+1. O destino de compilação Node foi configurado para builds externos (`.output/server/index.mjs` é a entrada prevista do Nitro); falta validar a compilação e a execução completa fora do ambiente gerenciado e preparar o PM2.
+2. O schema PostgreSQL independente e o comando de migração estão disponíveis em `vps/`; falta conectar o aplicativo a esse banco. Cada solicitação terá seu próprio registro e seus próprios arquivos — novas assinaturas nunca sobrescrevem as antigas.
 3. Acesso ao PostgreSQL exclusivamente no servidor, com consultas parametrizadas, transações para uso único do token, expiração, auditoria e prevenção de tentativas excessivas.
-4. Login administrativo próprio sem cadastro público, senhas com hash forte, sessão revogável em cookie `HttpOnly; Secure; SameSite`, comando para criar o primeiro administrador e comando seguro para redefinir senha **sem SMTP**.
+4. Os comandos para criar o primeiro administrador e redefinir senha **sem SMTP** já existem; falta conectar as telas e funções a login próprio sem cadastro público, sessão revogável em cookie `HttpOnly; Secure; SameSite`.
 5. Gravação privada de documentos, fotos e assinaturas manuscritas nos diretórios acima, validação do conteúdo e tamanho, URLs temporárias assinadas após validação da solicitação ativa e acesso administrativo autorizado. A primeira foto do cliente deve ser preservada.
 6. Substituição do Realtime por eventos do próprio servidor e do fluxo atual de upload e URLs temporárias. O painel deve atualizar listas e avisar quando uma solicitação for assinada.
 7. Arquivo de configuração do PM2, configuração de ambiente de produção, health check e encerramento limpo do servidor e das conexões de banco.
@@ -184,4 +201,4 @@ Substitua `AAAA-MM-DD` pela data desejada. O arquivo de backup contém CPF, imag
 - **Arquivo não abre:** confira permissões dos diretórios privados, validade do link temporário e status da solicitação.
 - **Certificado:** confira DNS, portas 80/443 e `certbot renew --dry-run`.
 
-**Próxima entrega necessária:** implementar e validar o port autônomo listado no item 5. Só então estes passos viram uma instalação executável de ponta a ponta.
+**Próxima entrega necessária:** implementar e validar a integração com banco, autenticação e arquivos privados listada no item 5. Só então estes passos viram uma instalação executável de ponta a ponta.

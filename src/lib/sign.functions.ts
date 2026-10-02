@@ -37,6 +37,10 @@ export type SignLinkInfo =
 export const getSignLinkInfo = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ token: z.string().regex(/^[a-f0-9]{64}$/) }).parse(d))
   .handler(async ({ data }): Promise<SignLinkInfo> => {
+    if (process.env['DATABASE_URL']) {
+      const { localSignInfo } = await import('./vps/sign.server');
+      return localSignInfo(data.token, clientMeta().ip);
+    }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { sha256Hex } = await import("./crypto.server");
     const { ip } = clientMeta();
@@ -100,6 +104,11 @@ export type SubmitResult =
 export const submitSignature = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => submitSchema.parse(d))
   .handler(async ({ data }): Promise<SubmitResult> => {
+    if (process.env['DATABASE_URL']) {
+      const { localSubmit } = await import('./vps/sign.server');
+      const { ip, ua } = clientMeta();
+      return localSubmit(data, ip, ua);
+    }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { sha256Hex } = await import("./crypto.server");
     const { ip, ua } = clientMeta();

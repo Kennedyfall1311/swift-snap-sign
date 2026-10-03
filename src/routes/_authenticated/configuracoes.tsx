@@ -9,6 +9,9 @@ import { settingsQuery } from "@/lib/queries";
 import { fieldCls } from "@/components/admin/ClientFormDialog";
 import { importClients } from "@/lib/admin.functions";
 import { isValidDocument, onlyDigits } from "@/lib/format";
+import { isVps } from '@/lib/vps/mode';
+import { localSaveSettings } from '@/lib/vps/admin.functions';
+import { localChangePassword } from '@/lib/vps/auth.functions';
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({
@@ -78,6 +81,12 @@ function SettingsPage() {
       return;
     }
     setSaving(true);
+    if (isVps) {
+      try { await localSaveSettings({ data: { ...form, company_name: form.company_name.trim(), link_expiry_days: Math.max(0, Math.min(365, Number(form.link_expiry_days) || 0)) } }); qc.invalidateQueries({ queryKey: ['settings'] }); toast.success('Configurações salvas'); }
+      catch { toast.error('Não foi possível salvar'); }
+      finally { setSaving(false); }
+      return;
+    }
     const { error } = await supabase
       .from("app_settings")
       .update({
@@ -249,6 +258,14 @@ function PasswordSection() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (isVps) {
+      if (next.length < 12) { toast.error('A nova senha deve ter pelo menos 12 caracteres'); return; }
+      setLoading(true);
+      try { const result = await localChangePassword({ data: { current, next } }); if (result.ok) { toast.success('Senha alterada. Entre novamente.'); window.location.href = '/auth'; } else toast.error('Senha atual incorreta'); }
+      catch { toast.error('Não foi possível alterar a senha'); }
+      finally { setLoading(false); }
+      return;
+    }
     if (next.length < 8) {
       toast.error("A nova senha deve ter pelo menos 8 caracteres");
       return;

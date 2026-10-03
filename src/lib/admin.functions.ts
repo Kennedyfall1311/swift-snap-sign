@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAdminBackend } from "./vps/admin-auth";
 
 async function assertAdmin(ctx: { supabase: any; userId: string }) {
   const { data } = await ctx.supabase
@@ -29,11 +29,15 @@ function hasExpectedFileSignature(bytes: Buffer, type: "application/pdf" | "imag
 
 /** Creates an independent signature request for a client. Returns its unique token. */
 export const generateSignLink = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAdminBackend])
   .inputValidator((d: unknown) =>
     z.object({ clientId: z.string().uuid(), title: z.string().trim().min(3).max(160).optional(), description: z.string().trim().max(1000).optional(), requirePhoto: z.boolean().optional(), documents: z.array(z.object({ name: z.string().min(1).max(180), type: z.enum(["application/pdf", "image/jpeg", "image/png"]), data: z.string().max(14_000_000) })).max(10).optional() }).parse(d),
   )
   .handler(async ({ data, context }) => {
+    if (process.env['DATABASE_URL']) {
+      const { createLink } = await import('./vps/admin.server');
+      return createLink(data, reqMeta().ip ?? '', reqMeta().ua);
+    }
     await assertAdmin(context);
     const { supabase, userId } = context;
     const { randomToken, sha256Hex } = await import("./crypto.server");
@@ -91,9 +95,10 @@ export const generateSignLink = createServerFn({ method: "POST" })
   });
 
 export const importClients = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAdminBackend])
   .inputValidator((d: unknown) => z.object({ rows: z.array(z.object({ codigo: z.string().trim().min(1).max(40), tipo_pessoa: z.enum(["PF", "PJ"]), cpf: z.string().min(11).max(14), name: z.string().trim().min(3).max(120), phone: z.string().max(15), rg: z.string().max(30).nullable(), orgao_expedidor: z.string().max(30).nullable(), apelido: z.string().max(120).nullable(), endereco: z.string().max(180).nullable(), complemento: z.string().max(100).nullable(), bairro: z.string().max(100).nullable(), cidade: z.string().max(100).nullable(), uf: z.string().max(2).nullable(), pais: z.string().max(60), cep: z.string().max(8).nullable(), notes: z.string().max(500).nullable() })).min(1).max(1000) }).parse(d))
   .handler(async ({ data, context }) => {
+    if (process.env['DATABASE_URL']) return (await import('./vps/admin.server')).importClientRows(data.rows);
     await assertAdmin(context);
     const rows = data.rows.map((row) => ({ ...row, created_by: context.userId }));
     const { error } = await context.supabase.from("clients").upsert(rows, { onConflict: "codigo" });
@@ -103,9 +108,10 @@ export const importClients = createServerFn({ method: "POST" })
 
 /** Returns a short-lived private URL for a captured photo. Admin only. */
 export const getPhotoUrl = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAdminBackend])
   .inputValidator((d: unknown) => z.object({ path: z.string().min(1).max(200) }).parse(d))
   .handler(async ({ data, context }) => {
+    if (process.env['DATABASE_URL']) return (await import('./vps/admin.server')).fileLink('photos', data.path);
     await assertAdmin(context);
     if (data.path.includes("..")) throw new Error("Caminho inválido");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -117,9 +123,10 @@ export const getPhotoUrl = createServerFn({ method: "POST" })
   });
 
 export const getPrivateFileUrl = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAdminBackend])
   .inputValidator((d: unknown) => z.object({ bucket: z.enum(["photos", "documents", "signature-marks"]), path: z.string().min(1).max(300) }).parse(d))
   .handler(async ({ data, context }) => {
+    if (process.env['DATABASE_URL']) return (await import('./vps/admin.server')).fileLink(data.bucket, data.path);
     await assertAdmin(context);
     if (data.path.includes("..")) throw new Error("Caminho inválido");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -129,7 +136,7 @@ export const getPrivateFileUrl = createServerFn({ method: "POST" })
   });
 
 export const logAudit = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([requireAdminBackend])
   .inputValidator((d: unknown) =>
     z
       .object({
@@ -141,6 +148,14 @@ export const logAudit = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
+    if (process.env['DATABASE_URL']) {
+      const { requireAdmin } = await import('./vps/auth.server');
+      const { database } = await import('./vps/db.server');
+      const admin = await requireAdmin();
+      const meta = reqMeta();
+      await database().query('INSERT INTO audit_logs(action,entity,entity_id,actor_id,ip_address,user_agent,details) VALUES($1,$2,$3,$4,$5,$6,$7)', [data.action,data.entity ?? null,data.entityId ?? null,admin.id,meta.ip,meta.ua,JSON.stringify(data.details ?? null)]);
+      return { ok: true };
+    }
     await assertAdmin(context);
     const meta = reqMeta();
     await context.supabase.from("audit_logs").insert({

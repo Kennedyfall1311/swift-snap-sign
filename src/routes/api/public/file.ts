@@ -10,7 +10,7 @@ export const Route = createFileRoute('/api/public/file')({
       const q = new URL(request.url).searchParams;
       const bucket = q.get('bucket') ?? '', path = q.get('path') ?? '', scope = q.get('scope') ?? '';
       const expires = Number(q.get('expires')), sig = q.get('sig') ?? '';
-      if (!validBucket(bucket) || !/^[a-f0-9]{64}$/.test(scope)) return new Response('Não autorizado', { status: 403 });
+      if (!validBucket(bucket) || !(/^[a-f0-9]{64}$/.test(scope) || /^admin:[a-f0-9-]{36}$/.test(scope))) return new Response('Não autorizado', { status: 403 });
       try {
         if (!verifyPrivateUrl(bucket, path, scope, expires, sig)) return new Response('Link expirado', { status: 403 });
         let rows: { content_type: string }[];

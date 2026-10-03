@@ -4,6 +4,8 @@ import { LayoutDashboard, PenLine, Users, Settings, LogOut, ShieldCheck } from "
 import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeClients } from "@/hooks/useRealtimeClients";
+import { isVps } from '@/lib/vps/mode';
+import { localLogout } from '@/lib/vps/auth.functions';
 
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -28,7 +30,7 @@ export function AdminShell({
   async function signOut() {
     await queryClient.cancelQueries();
     queryClient.clear();
-    await supabase.auth.signOut();
+    if (isVps) await localLogout(); else await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   }
 

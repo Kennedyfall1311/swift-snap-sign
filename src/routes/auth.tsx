@@ -5,6 +5,8 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getRegistrationAvailability } from "@/lib/settings.functions";
+import { isVps } from '@/lib/vps/mode';
+import { localLogin, getLocalAdmin } from '@/lib/vps/auth.functions';
 
 export const Route = createFileRoute("/auth")({
   loader: () => getRegistrationAvailability(),
@@ -37,6 +39,7 @@ function AuthPage() {
   const [info, setInfo] = useState<string | null>(null);
 
   useEffect(() => {
+    if (isVps) { getLocalAdmin().then(admin => { if (admin) navigate({ to: '/dashboard', replace: true }); }); return; }
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: "/dashboard", replace: true });
     });
@@ -45,6 +48,16 @@ function AuthPage() {
   async function submit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
     setInfo(null);
+    if (isVps) {
+      setLoading(true);
+      try {
+        const result = await localLogin({ data: { email, password } });
+        if (!result.ok) toast.error('E-mail ou senha incorretos');
+        else { navigate({ to: '/dashboard', replace: true }); }
+      } catch { toast.error('Não foi possível entrar. Tente novamente.'); }
+      finally { setLoading(false); }
+      return;
+    }
     if (mode === "forgot") {
       const em = z.string().trim().email().safeParse(email);
       if (!em.success) {
@@ -120,7 +133,7 @@ function AuthPage() {
         </p>
 
         <form onSubmit={submit} className="mt-6 rounded-2xl bg-card p-6 ring-1 ring-border">
-          {mode === "signup" && (
+          {!isVps && mode === "signup" && (
             <label className="block text-sm font-semibold">
               Nome
               <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
@@ -167,7 +180,7 @@ function AuthPage() {
               <button className="text-primary hover:underline" onClick={() => setMode("forgot")}>
                 Esqueci minha senha
               </button>
-              {registrationOpen && (
+              {!isVps && registrationOpen && (
                 <button className="text-muted-foreground hover:underline" onClick={() => setMode("signup")}>
                   Criar conta
                 </button>

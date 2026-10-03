@@ -12,6 +12,8 @@ import { logAudit } from "@/lib/admin.functions";
 import type { Client, ClientWithSignatures, SignatureWithDocuments } from "@/lib/queries";
 import { PhotoThumb } from "./PhotoThumb";
 import { StatusBadge } from "./StatusBadge";
+import { isVps } from '@/lib/vps/mode';
+import { localSaveClient } from '@/lib/vps/admin.functions';
 
 const schema = z.object({
   codigo: z.string().trim().min(1, "Informe o código").max(40),
@@ -82,6 +84,7 @@ export function ClientFormDialog({
         pais: parsed.data.pais, cep: onlyDigits(parsed.data.cep ?? "") || null,
         notes: parsed.data.notes ?? null,
       };
+      if (isVps) return await localSaveClient({ data: { payload, id: client?.id } }) as Client;
       if (client) {
         const { data, error } = await supabase.from("clients").update(payload).eq("id", client.id).select().single();
         if (error) throw error;

@@ -1,10 +1,17 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { isVps } from '@/lib/vps/mode';
+import { getLocalAdmin, localLogout } from '@/lib/vps/auth.functions';
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
+    if (isVps) {
+      const admin = await getLocalAdmin();
+      if (!admin) throw redirect({ to: '/auth' });
+      return { user: { id: admin.id, email: admin.email, user_metadata: { name: admin.name } } as Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'], isAdmin: true };
+    }
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) throw redirect({ to: "/auth" });
     const { data: role } = await supabase
@@ -32,7 +39,7 @@ function AuthenticatedLayout() {
           </p>
           <button
             onClick={async () => {
-              await supabase.auth.signOut();
+              if (isVps) await localLogout(); else await supabase.auth.signOut();
               window.location.href = "/auth";
             }}
             className="mt-6 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"

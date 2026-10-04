@@ -1,21 +1,30 @@
 import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
-import { promisify } from 'node:util';
 import { getCookie, setCookie, deleteCookie } from '@tanstack/react-start/server';
 import { database } from './db.server';
 
-const scrypt = promisify(scryptCallback);
 const COOKIE = 'verifica_vps_session';
+const SCRYPT_OPTIONS = { N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 } as const;
+
+function deriveKey(password: string, salt: Buffer): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    scryptCallback(password, salt, 64, SCRYPT_OPTIONS, (error, key) => {
+      if (error) reject(error);
+      else resolve(key);
+    });
+  });
+}
+
 function tokenHash(token: string) { return createHash('sha256').update(token).digest('hex'); }
 export async function verifyPassword(password: string, stored: string) {
   const [algo, N, r, p, salt, expected] = stored.split(':');
   if (algo !== 'scrypt' || N !== '32768' || r !== '8' || p !== '1' || !salt || !expected || !/^[a-f0-9]{64}$/.test(salt) || !/^[a-f0-9]{128}$/.test(expected)) return false;
-  const actual = await scrypt(password, Buffer.from(salt, 'hex'), 64, { N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 }) as Buffer;
+  const actual = await deriveKey(password, Buffer.from(salt, 'hex'));
   return timingSafeEqual(actual, Buffer.from(expected, 'hex'));
 }
 export async function hashPassword(password: string) {
   if (password.length < 12 || password.length > 128) throw new Error('A senha deve ter de 12 a 128 caracteres');
   const salt = randomBytes(32);
-  const hash = await scrypt(password, salt, 64, { N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 }) as Buffer;
+  const hash = await deriveKey(password, salt);
   return `scrypt:32768:8:1:${salt.toString('hex')}:${hash.toString('hex')}`;
 }
 export async function currentAdmin() {

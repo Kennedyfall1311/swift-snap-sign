@@ -36,7 +36,13 @@ export const generateSignLink = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (process.env['DATABASE_URL']) {
       const { createLink } = await import('./vps/admin.server');
-      return createLink(data, reqMeta().ip ?? '', reqMeta().ua);
+      return createLink({
+        clientId: data.clientId,
+        ...(data.title !== undefined ? { title: data.title } : {}),
+        ...(data.description !== undefined ? { description: data.description } : {}),
+        ...(data.requirePhoto !== undefined ? { requirePhoto: data.requirePhoto } : {}),
+        ...(data.documents !== undefined ? { documents: data.documents } : {}),
+      }, reqMeta().ip ?? '', reqMeta().ua);
     }
     await assertAdmin(context);
     const { supabase, userId } = context;

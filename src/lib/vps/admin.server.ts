@@ -22,12 +22,33 @@ function decrypt(ciphertext: string) {
   decipher.setAuthTag(Buffer.from(tag, 'hex'));
   return decipher.update(Buffer.from(bytes, 'hex'), undefined, 'utf8') + decipher.final('utf8');
 }
+type JsonRow = Record<string, unknown>;
+
 export async function listClients() {
   await requireAdmin();
   const { rows } = await database().query(`SELECT c.*,coalesce((SELECT json_agg(s ORDER BY s.created_at DESC) FROM
     (SELECT sig.*,coalesce((SELECT json_agg(d ORDER BY d.created_at,d.id) FROM signature_documents d WHERE d.signature_id=sig.id),'[]'::json) AS signature_documents
     FROM signatures sig WHERE sig.client_id=c.id) s),'[]'::json) AS signatures FROM clients c ORDER BY c.created_at DESC`);
-  return rows.map(c => ({ ...c, created_at: iso(c.created_at), updated_at: iso(c.updated_at), signed_at: iso(c.signed_at), signatures: c.signatures.map((s: Record<string, unknown>) => ({ ...s, token: decrypt(s.token_ciphertext as string), created_at: iso(s.created_at as Date), expires_at: iso(s.expires_at as Date), signed_at: iso(s.signed_at as Date), signature_documents: (s.signature_documents as Record<string, unknown>[]).map(d => ({ ...d, created_at: iso(d.created_at as Date) })) })) }));
+  return rows.map((client: JsonRow) => {
+    const signatures = Array.isArray(client['signatures']) ? client['signatures'] as JsonRow[] : [];
+    return {
+      ...client,
+      created_at: iso(client['created_at'] as Date),
+      updated_at: iso(client['updated_at'] as Date),
+      signed_at: iso(client['signed_at'] as Date | null),
+      signatures: signatures.map((signature) => {
+        const documents = Array.isArray(signature['signature_documents']) ? signature['signature_documents'] as JsonRow[] : [];
+        return {
+          ...signature,
+          token: decrypt(signature['token_ciphertext'] as string),
+          created_at: iso(signature['created_at'] as Date),
+          expires_at: iso(signature['expires_at'] as Date | null),
+          signed_at: iso(signature['signed_at'] as Date | null),
+          signature_documents: documents.map((document) => ({ ...document, created_at: iso(document['created_at'] as Date) })),
+        };
+      }),
+    };
+  });
 }
 export async function getSettings() {
   await requireAdmin();
@@ -61,6 +82,7 @@ export async function createLink(input: { clientId: string; title?: string; desc
     const days = settings[0]?.link_expiry_days ?? 0;
     const expiresAt = days > 0 ? new Date(Date.now() + days * 86400000).toISOString() : null;
     const { rows } = await connection.query(`INSERT INTO signatures(client_id,token_hash,token_ciphertext,title,description,require_photo,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id`, [input.clientId,hash,ciphertext,input.title ?? 'Confirmação de assinatura',input.description || null,input.requirePhoto ?? true,expiresAt]);
+    await connection.query("UPDATE clients SET status='PENDENTE' WHERE id=$1", [input.clientId]);
     for (const [index, doc] of (input.documents ?? []).entries()) {
       const match = doc.data.match(/^data:(application\/pdf|image\/jpeg|image\/png);base64,(.+)$/);
       if (!match?.[2] || match[1] !== doc.type) throw new Error(`Arquivo inválido: ${doc.name}`);

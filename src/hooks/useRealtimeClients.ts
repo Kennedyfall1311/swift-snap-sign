@@ -2,11 +2,18 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { isVps } from "@/lib/vps/mode";
 
 /** Keeps the admin lists fresh when a client signs. */
 export function useRealtimeClients() {
   const queryClient = useQueryClient();
   useEffect(() => {
+    if (isVps) {
+      const timer = window.setInterval(() => {
+        void queryClient.invalidateQueries({ queryKey: ["clients"] });
+      }, 10_000);
+      return () => window.clearInterval(timer);
+    }
     const channel = supabase
       .channel("admin-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "clients" }, (payload) => {

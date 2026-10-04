@@ -10,7 +10,7 @@ export const Route = createFileRoute("/_authenticated")({
     if (isVps) {
       const admin = await getLocalAdmin();
       if (!admin) throw redirect({ to: '/auth' });
-      return { user: { id: admin.id, email: admin.email, user_metadata: { name: admin.name } } as Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'], isAdmin: true };
+      return { user: { id: admin.id, email: admin.email, name: admin.name }, isAdmin: true };
     }
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) throw redirect({ to: "/auth" });
@@ -20,14 +20,21 @@ export const Route = createFileRoute("/_authenticated")({
       .eq("user_id", data.user.id)
       .eq("role", "admin")
       .maybeSingle();
-    return { user: data.user, isAdmin: !!role };
+    return {
+      user: {
+        id: data.user.id,
+        email: data.user.email ?? "",
+        name: (data.user.user_metadata?.["name"] as string | undefined) ?? undefined,
+      },
+      isAdmin: !!role,
+    };
   },
   component: AuthenticatedLayout,
 });
 
 function AuthenticatedLayout() {
   const { user, isAdmin } = Route.useRouteContext();
-  const name = (user.user_metadata?.["name"] as string | undefined) ?? undefined;
+  const name = user.name;
 
   if (!isAdmin) {
     return (

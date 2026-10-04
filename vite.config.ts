@@ -6,12 +6,14 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+const vpsBuild = process.env['VITE_VPS_MODE'] === 'true';
+
 export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
   },
-  // The Lovable preview keeps its own Cloudflare target; external VPS builds use Node.
-  nitro: { preset: "node-server" },
+  // The Lovable preview keeps its managed target; only explicit VPS builds use Node.
+  ...(vpsBuild ? { nitro: { preset: "node-server" } } : {}),
 });

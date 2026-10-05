@@ -110,10 +110,10 @@ export async function importClientRows(rows: Record<string, string | null>[]) {
   } catch (error) { await connection.query('ROLLBACK'); throw error; } finally { connection.release(); }
 }
 export async function fileLink(bucket: Bucket, path: string) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const table = bucket === 'documents' ? 'signature_documents' : bucket === 'photos' ? 'signatures' : 'signatures';
   const field = bucket === 'documents' ? 'storage_path' : bucket === 'photos' ? 'photo_path' : 'signature_path';
   const { rows } = await database().query(`SELECT 1 FROM ${table} WHERE ${field}=$1 UNION SELECT 1 FROM clients WHERE $2='photos' AND photo_path=$1`, [path,bucket]);
   if (!rows[0]) throw new Error('Arquivo indisponível');
-  return { url: privateUrl(bucket,path,`admin:${(await requireAdmin()).id}`) };
+  return { url: privateUrl(bucket,path,`admin:${admin.id}`) };
 }

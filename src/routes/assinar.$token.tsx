@@ -21,6 +21,8 @@ export const Route = createFileRoute("/assinar/$token")({
         { property: "og:title", content: `Confirmação de Assinatura — ${company}` },
         { property: "og:description", content: "Confirme seus dados e tire uma foto para concluir sua assinatura." },
         { name: "robots", content: "noindex" },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary" },
       ],
     };
   },

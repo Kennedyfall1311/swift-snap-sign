@@ -17,6 +17,8 @@ export const Route = createFileRoute("/auth")({
       { property: "og:title", content: "Entrar — Verifica" },
       { property: "og:description", content: "Acesso administrativo ao painel de assinaturas." },
       { name: "robots", content: "noindex" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: AuthPage,
@@ -177,9 +179,9 @@ function AuthPage() {
         <div className="mt-4 flex flex-wrap justify-between gap-2 text-sm">
           {mode === "login" ? (
             <>
-              <button className="text-primary hover:underline" onClick={() => setMode("forgot")}>
+              {!isVps && <button className="text-primary hover:underline" onClick={() => setMode("forgot")}>
                 Esqueci minha senha
-              </button>
+              </button>}
               {!isVps && registrationOpen && (
                 <button className="text-muted-foreground hover:underline" onClick={() => setMode("signup")}>
                   Criar conta

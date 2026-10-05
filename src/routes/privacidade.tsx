@@ -10,6 +10,8 @@ export const Route = createFileRoute("/privacidade")({
       { name: "description", content: "Como tratamos nome, CPF e fotografia coletados na confirmação de assinatura." },
       { property: "og:title", content: "Política de Privacidade — Verifica" },
       { property: "og:description", content: "Como tratamos nome, CPF e fotografia coletados na confirmação de assinatura." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: PrivacyPage,

@@ -12,6 +12,8 @@ export const Route = createFileRoute("/redefinir-senha")({
       { property: "og:title", content: "Redefinir senha — Verifica" },
       { property: "og:description", content: "Defina uma nova senha de acesso ao painel." },
       { name: "robots", content: "noindex" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ResetPage,

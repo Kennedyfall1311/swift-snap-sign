@@ -21,6 +21,8 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({
       { property: "og:title", content: "Configurações — Verifica" },
       { property: "og:description", content: "Empresa, logo, mensagem do WhatsApp, prazo do link e senha." },
       { name: "robots", content: "noindex" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: SettingsPage,

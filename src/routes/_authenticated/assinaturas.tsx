@@ -17,6 +17,8 @@ export const Route = createFileRoute("/_authenticated/assinaturas")({
       { property: "og:title", content: "Assinaturas — Verifica" },
       { property: "og:description", content: "Acompanhe assinaturas pendentes, concluídas e canceladas." },
       { name: "robots", content: "noindex" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: SignaturesPage,

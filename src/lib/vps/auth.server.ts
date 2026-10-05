@@ -43,7 +43,7 @@ export async function requireAdmin() {
 }
 export async function login(email: string, password: string) {
   const request = getRequest();
-  const ip = (request.headers.get('x-real-ip') || request.headers.get('cf-connecting-ip') || 'unknown').slice(0, 100);
+  const ip = (request.headers.get('x-real-ip') || 'unknown').slice(0, 100);
   const identity = createHash('sha256').update(email.trim().toLowerCase()).digest('hex');
   const attempts = await database().query("SELECT count(*)::int AS count FROM admin_login_attempts WHERE ip_address=$1 AND created_at > now() - interval '15 minutes'", [ip]);
   if (attempts.rows[0].count >= 10) return false;

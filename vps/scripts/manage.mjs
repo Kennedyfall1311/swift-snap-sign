@@ -53,8 +53,14 @@ async function main() {
           await db.query(await readFile(resolve('vps/migrations/001_initial.sql'), 'utf8'));
           await db.query('INSERT INTO public.schema_migrations (version) VALUES ($1)', [version]);
         }
+        const second = '002_admin_login_attempts';
+        const already = await db.query('SELECT 1 FROM public.schema_migrations WHERE version = $1', [second]);
+        if (!already.rowCount) {
+          await db.query(await readFile(resolve('vps/migrations/002_admin_login_attempts.sql'), 'utf8'));
+          await db.query('INSERT INTO public.schema_migrations (version) VALUES ($1)', [second]);
+        }
         await db.query('COMMIT');
-        console.log(existing.rowCount ? 'Banco já atualizado.' : 'Estrutura inicial aplicada.');
+        console.log(existing.rowCount && already.rowCount ? 'Banco já atualizado.' : 'Migrações aplicadas.');
       } catch (error) { await db.query('ROLLBACK'); throw error; }
       return;
     }

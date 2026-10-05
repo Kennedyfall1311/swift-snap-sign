@@ -134,15 +134,6 @@ CREATE TABLE public.sign_attempts (
 GRANT SELECT, INSERT, DELETE ON public.sign_attempts TO assinaturas_app;
 CREATE INDEX sign_attempts_ip_idx ON public.sign_attempts (ip_address, created_at DESC);
 
-CREATE TABLE public.admin_login_attempts (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  ip_address text NOT NULL,
-  email_hash text NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-GRANT SELECT, INSERT, DELETE ON public.admin_login_attempts TO assinaturas_app;
-CREATE INDEX admin_login_attempts_ip_idx ON public.admin_login_attempts (ip_address, created_at DESC);
-
 CREATE OR REPLACE FUNCTION public.set_updated_at() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN NEW.updated_at = now(); RETURN NEW; END;
 $$;

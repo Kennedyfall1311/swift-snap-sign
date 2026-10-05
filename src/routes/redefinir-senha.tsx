@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { isVps } from '@/lib/vps/mode';
 
 export const Route = createFileRoute("/redefinir-senha")({
   head: () => ({
@@ -23,6 +24,7 @@ function ResetPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (isVps) return;
     const isRecovery = window.location.hash.includes("type=recovery");
     supabase.auth.getSession().then(({ data }) => setReady(isRecovery || !!data.session));
     const { data } = supabase.auth.onAuthStateChange((event) => {
@@ -33,6 +35,7 @@ function ResetPage() {
 
   async function submit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
+    if (isVps) return;
     if (password.length < 8) {
       toast.error("A senha deve ter pelo menos 8 caracteres");
       return;
@@ -52,7 +55,9 @@ function ResetPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <form onSubmit={submit} className="w-full max-w-sm rounded-2xl bg-card p-6 ring-1 ring-border">
         <h1 className="text-2xl font-semibold">Nova senha</h1>
-        {!ready ? (
+        {isVps ? (
+          <p className="mt-2 text-sm text-muted-foreground">Peça ao responsável pelo servidor para redefinir sua senha.</p>
+        ) : !ready ? (
           <p className="mt-2 text-sm text-muted-foreground">Abra esta página pelo link enviado ao seu e-mail.</p>
         ) : (
           <>

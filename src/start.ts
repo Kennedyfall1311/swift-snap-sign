@@ -1,7 +1,7 @@
 import { createStart, createCsrfMiddleware, createMiddleware } from "@tanstack/react-start";
 
 import { renderErrorPage } from "./lib/error-page";
-import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
+import { isVps } from "@/lib/vps/mode";
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
@@ -25,7 +25,16 @@ const csrfMiddleware = createCsrfMiddleware({
   filter: (ctx) => ctx.handlerType === "serverFn",
 });
 
+// Local sessions use HttpOnly cookies; only managed deployments attach a bearer token.
+const backendAuth = createMiddleware({ type: "function" }).client(async ({ next }) => {
+  if (isVps) return next();
+  const { supabase } = await import("@/integrations/supabase/client");
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  return next({ headers: token ? { Authorization: `Bearer ${token}` } : {} });
+});
+
 export const startInstance = createStart(() => ({
-  functionMiddleware: [attachSupabaseAuth],
+  functionMiddleware: [backendAuth],
   requestMiddleware: [errorMiddleware, csrfMiddleware],
 }));

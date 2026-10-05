@@ -13,3 +13,4 @@
 - Keep standalone VPS schema and administrative CLI under `vps/`, separate from Lovable Cloud migrations, because the two backends require different identities and storage services.
 - Build external VPS deployments with Nitro's Node server preset while retaining Lovable's managed preview target, because their runtimes differ.
 - Select the standalone PostgreSQL backend at build time with `VITE_VPS_MODE=true`; server handlers verify `DATABASE_URL` independently to prevent client-side mode spoofing.
+- Use cookie-only server function calls in VPS builds and attach managed bearer tokens only in Cloud builds, because local sessions cannot depend on managed auth configuration.

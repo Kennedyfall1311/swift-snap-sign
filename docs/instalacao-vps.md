@@ -224,3 +224,78 @@ Restauração (com a aplicação parada: `pm2 stop assinaturas`): recrie o banco
 - **413 Request Entity Too Large:** aumente `client_max_body_size`.
 - **Câmera não abre:** HTTPS válido, permissão no navegador e abrir fora do navegador interno do WhatsApp.
 - **Banco indisponível:** `systemctl status postgresql`, `DATABASE_URL` e senha codificada na URL.
+
+## 12. Rodar localmente no computador (Docker + PostgreSQL)
+
+Útil para testar antes de subir na VPS. Requer Docker (Docker Desktop no Windows/macOS), Node.js 22 e Bun. No Windows, use o terminal do WSL.
+
+### 12.1 Subir o PostgreSQL com um comando
+
+Na pasta do projeto:
+
+```bash
+docker compose -f vps/docker/docker-compose.local.yml up -d
+docker compose -f vps/docker/docker-compose.local.yml ps   # deve aparecer "healthy"
+```
+
+Isso cria o banco `assinaturas`, o usuário `assinaturas_app` (senha `senha_local_troque`) e a extensão `pgcrypto`. Os dados ficam salvos no volume `assinaturas_pgdata`.
+
+### 12.2 Criar o arquivo `app.env` local
+
+```bash
+mkdir -p ./storage-local/photos ./storage-local/documents ./storage-local/signature-marks
+echo "TOKEN_ENCRYPTION_KEY=$(openssl rand -hex 32)"
+echo "FILE_LINK_SECRET=$(openssl rand -hex 32)"
+```
+
+Crie `app.env` na raiz do projeto (não envie ao GitHub):
+
+```dotenv
+NODE_ENV=production
+HOST=127.0.0.1
+PORT=3000
+DATABASE_URL=postgresql://assinaturas_app:senha_local_troque@127.0.0.1:5432/assinaturas
+PRIVATE_STORAGE_ROOT=/caminho/absoluto/do/projeto/storage-local
+TOKEN_ENCRYPTION_KEY=<valor gerado>
+FILE_LINK_SECRET=<valor gerado>
+```
+
+`PRIVATE_STORAGE_ROOT` precisa ser caminho absoluto (veja com `pwd`).
+
+### 12.3 Migrar, criar administrador, compilar e iniciar
+
+```bash
+bun install
+set -a; . ./app.env; set +a
+node vps/scripts/manage.mjs migrate
+node vps/scripts/manage.mjs create-admin admin@local.test "Administrador"
+bun run build:vps
+node --env-file=app.env .output/server/index.mjs
+```
+
+Abra `http://localhost:3000/auth`.
+
+> Localmente o cookie de sessão `Secure` é aceito pelo navegador em `localhost`. Se o login não persistir, teste pelo Chrome/Edge ou use um túnel HTTPS (abaixo).
+
+### 12.4 Testar no celular
+
+A câmera do celular exige HTTPS. Use um túnel apontando para a porta 3000, por exemplo:
+
+```bash
+cloudflared tunnel --url http://localhost:3000
+# ou
+ngrok http 3000
+```
+
+Abra o endereço `https://...` exibido no celular. O túnel precisa repassar o IP real; se não repassar, os registros de IP aparecerão como do túnel.
+
+### 12.5 Comandos úteis
+
+```bash
+docker compose -f vps/docker/docker-compose.local.yml stop      # parar o banco
+docker compose -f vps/docker/docker-compose.local.yml start     # iniciar de novo
+docker compose -f vps/docker/docker-compose.local.yml down -v   # APAGA o banco local
+docker exec -it assinaturas-postgres psql -U assinaturas_app -d assinaturas
+```
+
+Adicione `app.env` e `storage-local/` ao `.gitignore`.
